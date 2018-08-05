@@ -11,14 +11,19 @@
         "Other"
     ],
     "activationEvents": [
-        "onCommand:extension.sayHello"
+        "onCommand:extension.createWAST",
+        "onCommand:extension.createABI"
     ],
     "main": "./out/extension",
     "contributes": {
         "commands": [
             {
-                "command": "extension.sayHello",
-                "title": "Hello World"
+                "command": "extension.createWAST",
+                "title": "eoscode : Create .wast"
+            },
+            {
+                "command": "extension.createABI",
+                "title": "eoscode : Create .abi"
             }
         ]
     },
