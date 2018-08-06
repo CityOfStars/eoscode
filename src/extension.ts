@@ -2,22 +2,81 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path'
+
+let eosiocppPath = "eosiocpp";
+let nodeosPath = "nodeos";
+let cleosPath = "cleos";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
     let terminal = vscode.window.createTerminal('eoscode terminal');
+    context.subscriptions.push(terminal);
+
     let wastTargets : string[] = ['cpp'];
     let abiTargets : string[] = ['hpp', 'h', 'cpp'];
 
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
+    let rootDir = vscode.workspace.rootPath;
+    if (!rootDir)
+    {
+        return;
+    }
+    
     console.log('Congratulations, your extension "eoscode" is now active!');
+    
+    const configName = 'eoscode.config.json'
+    const configPath = path.join(rootDir, configName);
+    console.log(configPath);
+    
+    if (fs.existsSync(configPath))
+    {
+        console.log('config file is existed.');
+
+        let jsonContents = fs.readFileSync(configPath, 'utf8');
+        if(jsonContents.length != 0)
+        {
+            let obj = JSON.parse(jsonContents);
+
+            try 
+            {
+                console.log(obj.eosiocppPath);    
+            }
+            catch(error)
+            {
+                console.error(error);
+            }
+            
+            try 
+            {
+                console.log(obj.nodeosPath);
+            }
+            catch(error) 
+            {
+                console.error(error);
+            }
+            
+            try 
+            {
+                console.log(obj.cleosPath);
+            }
+            catch(error) 
+            {
+                console.error(error);
+            }
+        }
+    }
+    else
+    {
+        // var arr = fs.readdirSync(".");
+        console.log('config file is NOT existed.');
+    }
 
     let disposable = vscode.commands.registerCommand('extension.createWAST', () => {
         const fileName = getCurrentFileName();
-        const onlyName = getFileOnlyName(fileName);
-        const ext = getFileExtension(fileName);
+        const onlyName = path.basename(fileName);
+        const ext = path.extname(fileName);
         if(!wastTargets.find((e) => { return e == ext; }))
         {
             vscode.window.showInformationMessage(`Invalid file extension : .${ext} expected : ` + wastTargets);
@@ -35,8 +94,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     disposable = vscode.commands.registerCommand('extension.createABI', () => {
         const fileName = getCurrentFileName();
-        const onlyName = getFileOnlyName(fileName);
-        const ext = getFileExtension(fileName);
+        const onlyName = path.basename(fileName);
+        const ext = path.extname(fileName);
         if(!abiTargets.find((e) => { return e == ext; }))
         {
             vscode.window.showInformationMessage(`Invalid file extension : .${ext} expected : ` + wastTargets);
@@ -83,26 +142,6 @@ function getCurrentFileName() : string
     return arr[arr.length - 1];
 }
 
-function getFileExtension(fileName : string) : string
-{
-    let arr = fileName.split('.');
-    if (arr.length !== 0)
-    {
-        return arr[arr.length - 1];
-    }
-    return '';
-}
-
-function getFileOnlyName(fileName : string) : string
-{
-    let arr = fileName.split('.');
-    if (arr.length >= 2)
-    {
-        return arr[arr.length - 2];
-    }
-    return '';
-}
-
 function selectTerminal(terminal : vscode.Terminal)
 {
     terminal.show();
@@ -113,8 +152,8 @@ function createWAST(terminal : vscode.Terminal, source : string, target : string
     selectTerminal(terminal);
     
     // > eosiocpp -o targetName fileName
-    terminal.sendText(`eosiocpp -o ${target} ${source}`);
-    vscode.window.showInformationMessage(`eosiocpp -o ${target} ${source}`);
+    terminal.sendText(eosiocppPath + ` -o ${target} ${source}`);
+    vscode.window.showInformationMessage(eosiocppPath + ` -o ${target} ${source}`);
 }
 
 function createABI(terminal : vscode.Terminal, source : string, target : string)
@@ -122,6 +161,6 @@ function createABI(terminal : vscode.Terminal, source : string, target : string)
     selectTerminal(terminal);
     
     // > eosiocpp -g targetName fileName
-    terminal.sendText(`eosiocpp -g ${target} ${source}`);
-    vscode.window.showInformationMessage(`eosiocpp -g ${target} ${source}`);
+    terminal.sendText(eosiocppPath + ` -g ${target} ${source}`);
+    vscode.window.showInformationMessage(eosiocppPath + ` -g ${target} ${source}`);
 }
