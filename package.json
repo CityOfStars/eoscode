@@ -12,7 +12,8 @@
     ],
     "activationEvents": [
         "onCommand:extension.createWAST",
-        "onCommand:extension.createABI"
+        "onCommand:extension.createABI",
+        "onCommand:extension.buildContract"
     ],
     "main": "./out/extension",
     "contributes": {
@@ -24,6 +25,10 @@
             {
                 "command": "extension.createABI",
                 "title": "eoscode : Create .abi"
+            },
+            {
+                "command": "extension.buildContract",
+                "title": "eoscode : Build Contract (Create .wast and .abi)"
             }
         ]
     },
