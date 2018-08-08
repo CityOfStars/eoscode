@@ -16,6 +16,11 @@ let configs =
     buildTarget: {
         wastSource: "",
         abiSource: ""
+    },
+    contract: {
+        account: "",
+        option: "",
+        dir: vscode.workspace.rootPath
     }
 };
 
@@ -106,6 +111,8 @@ export function activate(context: vscode.ExtensionContext) {
 
         const abiTargetName = abiSourceName + ".abi";
         createABI(terminal, abiSource, abiTargetName);
+
+        setContract(terminal);
     });
     context.subscriptions.push(disposable);
 }
@@ -242,4 +249,19 @@ function getOnlyFileName(filePath : string)
     }
     
     return fileBaseName;
+}
+
+function setContract(terminal : vscode.Terminal)
+{
+    const account = configs.contract.account;
+    const option = configs.contract.option;
+    const dir = configs.contract.dir;
+
+    selectTerminal(terminal);
+    
+    const cleosPath = configs.eosPath.cleosPath;
+
+    const cmd = cleosPath + ` set contract ${option} ${account} ${dir}`;
+    terminal.sendText(cmd);
+    vscode.window.showInformationMessage(cmd);
 }
