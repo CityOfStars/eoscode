@@ -5,11 +5,19 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path'
 
-let eosiocppPath = "eosiocpp";
-let nodeosPath = "nodeos";
-let cleosPath = "cleos";
-let wastSource = "";
-let abiSource = "";
+// default configs
+let configs = 
+{
+    eosPath: {
+        eosiocppPath: "eosiocpp",
+        nodeosPath: "nodeos",
+        cleosPath: "cleos"
+    },
+    buildTarget: {
+        wastSource: "",
+        abiSource: ""
+    }
+};
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -28,12 +36,12 @@ export function activate(context: vscode.ExtensionContext) {
         const filePath = getCurrentFilePath();
         if (!filePath.length)
             return;
-
-        const onlyName = path.basename(filePath);
+        
+        const onlyName = getOnlyFileName(filePath);
         const ext = path.extname(filePath);
         if (!wastTargets.find((e) => { return e == ext; }))
         {
-            vscode.window.showInformationMessage(`Invalid file extension : ${ext} expected : ` + wastTargets);
+            vscode.window.showErrorMessage(`Invalid file extension : "${ext}". expected : ` + wastTargets);
             return;    
         }
 
@@ -48,11 +56,11 @@ export function activate(context: vscode.ExtensionContext) {
         if (!filePath.length)
             return;
 
-        const onlyName = path.basename(filePath);
+        const onlyName = getOnlyFileName(filePath);
         const ext = path.extname(filePath);
         if (!abiTargets.find((e) => { return e == ext; }))
         {
-            vscode.window.showInformationMessage(`Invalid file extension : ${ext} expected : ` + abiTargets);
+            vscode.window.showErrorMessage(`Invalid file extension : "${ext}". expected : ` + abiTargets);
             return;    
         }
 
@@ -63,23 +71,33 @@ export function activate(context: vscode.ExtensionContext) {
 
     disposable = vscode.commands.registerCommand('extension.buildContract', () => 
     {
-        if (wastSource.length == 0 ||
-            abiSource.length == 0)
+        const wastSource = configs.buildTarget.wastSource;
+        const abiSource = configs.buildTarget.abiSource;
+        if (wastSource.length == 0)
+        {
+            vscode.window.showErrorMessage(`Please configure .wast Build Target`);
             return;
+        }
 
-        const wastSourceName = path.basename(wastSource);
+        if (abiSource.length == 0)
+        {
+            vscode.window.showErrorMessage(`Please configure .abi Build Target`);
+            return;
+        }
+
+        const wastSourceName = getOnlyFileName(wastSource);
         const wastSourceExt = path.extname(wastSource);
         if (!wastTargets.find((e) => { return e == wastSourceExt; }))
         {
-            vscode.window.showInformationMessage(`Invalid file extension : ${wastSourceExt} expected : ` + wastTargets);
+            vscode.window.showErrorMessage(`Invalid file extension : "${wastSourceExt}". expected : ` + wastTargets);
             return;    
         }
 
-        const abiSourceName = path.basename(abiSource);
+        const abiSourceName = getOnlyFileName(abiSource);
         const abiSourceExt = path.extname(abiSource);
         if (!abiTargets.find((e) => { return e == abiSourceExt; }))
         {
-            vscode.window.showInformationMessage(`Invalid file extension : ${ext} expected : ` + abiTargets);
+            vscode.window.showErrorMessage(`Invalid file extension : "${abiSourceExt}". expected : ` + abiTargets);
             return;    
         }
 
@@ -118,21 +136,23 @@ function selectTerminal(terminal : vscode.Terminal)
     terminal.show();
 }
 
+// > eosiocpp -o targetName fileName
 function createWAST(terminal : vscode.Terminal, source : string, target : string)
 {
     selectTerminal(terminal);
     
-    // > eosiocpp -o targetName fileName
+    const eosiocppPath = configs.eosPath.eosiocppPath;
     terminal.sendText(eosiocppPath + ` -o ${target} ${source}`);
     vscode.window.showInformationMessage(eosiocppPath + ` -o ${target} ${source}`);
     setWASTSource(source);
 }
 
+// > eosiocpp -g targetName fileName
 function createABI(terminal : vscode.Terminal, source : string, target : string)
 {
     selectTerminal(terminal);
     
-    // > eosiocpp -g targetName fileName
+    const eosiocppPath = configs.eosPath.eosiocppPath;
     terminal.sendText(eosiocppPath + ` -g ${target} ${source}`);
     vscode.window.showInformationMessage(eosiocppPath + ` -g ${target} ${source}`);
     setABISource(source);
@@ -148,7 +168,7 @@ function getConfigPath() : string
     
     const configName = 'eoscode.config.json'
     const configPath = path.join(rootDir, configName);
-    console.log(configPath);
+    // console.log(configPath);
 
     return configPath;
 }
@@ -157,19 +177,11 @@ function getConfig() : any
 {
     const configPath = getConfigPath();
 
-    let defaultConfig = 
-`{
-    "eosiocppPath": "${eosiocppPath}",
-    "nodeosPath": "${nodeosPath}",
-    "cleosPath": "${cleosPath}"
-}`;
-
     if (!fs.existsSync(configPath))
     {
         // var arr = fs.readdirSync(".");
         console.log('config file is NOT existed. create new one.');
-        
-        fs.writeFileSync(configPath, defaultConfig, 'utf8');
+        saveConfig(configs);
     }
 
     if (!fs.existsSync(configPath))
@@ -178,10 +190,6 @@ function getConfig() : any
     console.log('config file is existed.');
 
     let jsonContents = fs.readFileSync(configPath, 'utf8');
-    if (jsonContents.length == 0) {
-        fs.writeFileSync(configPath, defaultConfig, 'utf8');
-        jsonContents = defaultConfig;
-    }
 
     let obj = undefined;
     try
@@ -190,62 +198,17 @@ function getConfig() : any
     }
     catch(error)
     {
-        vscode.window.showErrorMessage(`Invalid 'eoscode.config.json' : ${error}`);
+        vscode.window.showErrorMessage(`Invalid 'eoscode.config.json'. Initialize. : ${error}`);
+        saveConfig(configs);
+        obj = configs;
     }
-    
+
     return obj;
 }
 
 function loadConfig()
 {
-    let configObj = getConfig();
-    
-    if (configObj.eosiocppPath)
-    {
-        eosiocppPath = configObj.eosiocppPath;
-    }
-    else
-    {
-        configObj.eosiocppPath = eosiocppPath;
-    }
-    
-    if (configObj.nodeosPath)
-    {
-        nodeosPath = configObj.nodeosPath;
-    }
-    else
-    {
-        configObj.nodeosPath = nodeosPath;
-    }
-    
-    if (configObj.cleosPath)
-    {
-        cleosPath = configObj.cleosPath;
-    }
-    else
-    {
-        configObj.cleosPath = cleosPath;
-    }
-
-    if (configObj.abiSource)
-    {
-        abiSource = configObj.abiSource;
-    }
-    else
-    {
-        configObj.abiSource = abiSource;
-    }
-
-    if (configObj.wastSource)
-    {
-        wastSource = configObj.wastSource;
-    }
-    else
-    {
-        configObj.wastSource = wastSource;
-    }
-
-    saveConfig(configObj);
+    configs = getConfig();
 }
 
 function saveConfig(obj : any)
@@ -258,18 +221,25 @@ function saveConfig(obj : any)
 
 function setABISource(filePath : string)
 {
-    abiSource = filePath;
-    
-    let obj = getConfig();
-    obj.abiSource = abiSource;
-    saveConfig(obj);
+    configs.buildTarget.abiSource = filePath;
+    saveConfig(configs);
 }
 
 function setWASTSource(filePath : string)
 {
-    wastSource = filePath;
+    configs.buildTarget.wastSource = filePath;
+    saveConfig(configs);
+}
+
+function getOnlyFileName(filePath : string)
+{
+    let fileBaseName = path.basename(filePath);
+
+    let pos = fileBaseName.lastIndexOf('.');
+    if(pos != fileBaseName.length)
+    {
+        return fileBaseName.slice(0, pos);
+    }
     
-    let obj = getConfig();
-    obj.wastSource = wastSource;
-    saveConfig(obj);
+    return fileBaseName;
 }
