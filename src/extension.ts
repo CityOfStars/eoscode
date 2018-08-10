@@ -23,6 +23,7 @@ let configs =
     contract: {
         account: "",
         option: "",
+        permission: ""
     }
 };
 
@@ -133,16 +134,12 @@ function getValidTargetDir(filePath : string) : string
     if (!fs.existsSync(targetDir))
     {   // update to current dir.
         targetDir = path.dirname(filePath);
-    }
-
-    if(path.basename(targetDir) != getOnlyFileName(filePath))
-    {
-        let errorMsg = 'Error(buildTarget.targetDir) : Invalid targetDir name. It must equal with source(.cpp) and target file (.wast) name.';
+        configs.buildTarget.targetDir = targetDir;
+        
+        let errorMsg = 'Error(buildTarget.targetDir) : No exist directory : ${targetDir}. Reset targetDir to source file directory.';
         vscode.window.showErrorMessage(errorMsg);
-        throw Error(errorMsg)
     }
 
-    configs.buildTarget.targetDir = targetDir;
     return targetDir;
 }
 
@@ -275,6 +272,7 @@ function setContract(terminal : vscode.Terminal)
     let account = configs.contract.account;
     const option = configs.contract.option;
     const dir = configs.buildTarget.targetDir;
+    const permission = configs.contract.permission;
 
     if(account.length == 0)
     {
@@ -292,7 +290,10 @@ function setContract(terminal : vscode.Terminal)
 
     selectTerminal(terminal);
 
-    const cmd = getCleosPath() + ` set contract ${option} ${account} ${dir}`;
+    let wast = path.join(dir, getOnlyFileName(configs.buildTarget.wastSource) + ".wast");
+    let abi = path.join(dir, getOnlyFileName(configs.buildTarget.abiSource) + ".abi");
+
+    const cmd = getCleosPath() + ` set contract ${option} ${account} ${dir} ${wast} ${abi} ${permission}`;
     terminal.sendText(cmd);
     vscode.window.showInformationMessage(cmd);
 }
