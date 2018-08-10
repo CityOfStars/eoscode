@@ -11,24 +11,48 @@
         "Other"
     ],
     "activationEvents": [
+        "onCommand:extension.test",
         "onCommand:extension.createWAST",
         "onCommand:extension.createABI",
-        "onCommand:extension.buildContract"
+        "onCommand:extension.inputContractAccount",
+        "onCommand:extension.buildContract",
+        "onCommand:extension.setContract",
+        "onCommand:extension.buildAndSetContract"
     ],
     "main": "./out/extension",
     "contributes": {
         "commands": [
             {
+                "command": "extension.test",
+                "title": "EOSCode : Test"
+            },
+            {
                 "command": "extension.createWAST",
-                "title": "eoscode : Create .wast"
+                "title": "EOSCode : Create .wast"
             },
             {
                 "command": "extension.createABI",
-                "title": "eoscode : Create .abi"
+                "title": "EOSCode : Create .abi"
+            },
+            {
+                "command": "extension.inputContractAccount",
+                "title": "EOSCode : Input Contract Account"
+            },
+            {
+                "command": "extension.inputContractOption",
+                "title": "EOSCode : Input Contract Option"
             },
             {
                 "command": "extension.buildContract",
-                "title": "eoscode : Build Contract (Create .wast and .abi)"
+                "title": "EOSCode : Build Contract (create .wast and .abi)"
+            },
+            {
+                "command": "extension.setContract",
+                "title": "EOSCode : Set Contract To Account"
+            },
+            {
+                "command": "extension.buildAndSetContract",
+                "title": "EOSCode : Build And Set Contract (contract account is required.)"
             }
         ]
     },

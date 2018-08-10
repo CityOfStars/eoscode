@@ -4,6 +4,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path'
+import { runInThisContext } from 'vm';
 
 // default configs
 let configs = 
@@ -11,18 +12,22 @@ let configs =
     eosPath: {
         eosiocppPath: "eosiocpp",
         nodeosPath: "nodeos",
-        cleosPath: "cleos"
+        cleosPath: "cleos",
+        cleosOption: "-u http://127.0.0.1:8888 --wallet-url http://127.0.0.1:8900" // local net
     },
     buildTarget: {
         wastSource: "",
-        abiSource: ""
+        abiSource: "",
+        targetDir: ""
     },
     contract: {
         account: "",
         option: "",
-        dir: vscode.workspace.rootPath
     }
 };
+
+const wastTargets : string[] = ['.cpp'];
+const abiTargets : string[] = ['.hpp', '.h', '.cpp'];
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -30,95 +35,73 @@ export function activate(context: vscode.ExtensionContext) {
     let terminal = vscode.window.createTerminal('eoscode terminal');
     context.subscriptions.push(terminal);
 
-    let wastTargets : string[] = ['.cpp'];
-    let abiTargets : string[] = ['.hpp', '.h', '.cpp'];
-
     console.log('Congratulations, your extension "eoscode" is now active!');
     loadConfig();
 
-    let disposable = vscode.commands.registerCommand('extension.createWAST', () => 
+    registerEOSCodeCommand(context, 'extension.test', () => 
+    {
+        runTestCode();
+    });
+
+    registerEOSCodeCommand(context, 'extension.createWAST', () => 
     {
         const filePath = getCurrentFilePath();
-        if (!filePath.length)
-            return;
-        
-        const onlyName = getOnlyFileName(filePath);
-        const ext = path.extname(filePath);
-        if (!wastTargets.find((e) => { return e == ext; }))
-        {
-            vscode.window.showErrorMessage(`Invalid file extension : "${ext}". expected : ` + wastTargets);
-            return;    
-        }
-
-        const targetName = onlyName + ".wast";
-        createWAST(terminal, filePath, targetName);
+        createWAST(terminal, filePath);
     });
-    context.subscriptions.push(disposable);
 
-    disposable = vscode.commands.registerCommand('extension.createABI', () => 
+    registerEOSCodeCommand(context, 'extension.createABI', () => 
     {
         const filePath = getCurrentFilePath();
-        if (!filePath.length)
-            return;
-
-        const onlyName = getOnlyFileName(filePath);
-        const ext = path.extname(filePath);
-        if (!abiTargets.find((e) => { return e == ext; }))
-        {
-            vscode.window.showErrorMessage(`Invalid file extension : "${ext}". expected : ` + abiTargets);
-            return;    
-        }
-
-        const targetName = onlyName + ".abi";
-        createABI(terminal, filePath, targetName);
+        createABI(terminal, filePath);
     });
-    context.subscriptions.push(disposable);
 
-    disposable = vscode.commands.registerCommand('extension.buildContract', () => 
+    registerEOSCodeCommand(context, 'extension.inputContractAccount', () => 
     {
-        const wastSource = configs.buildTarget.wastSource;
-        const abiSource = configs.buildTarget.abiSource;
-        if (wastSource.length == 0)
-        {
-            vscode.window.showErrorMessage(`Please configure .wast Build Target`);
-            return;
-        }
+        inputContractAccount(account => vscode.window.showInformationMessage(`contract account : ${account}`));
+    });
 
-        if (abiSource.length == 0)
-        {
-            vscode.window.showErrorMessage(`Please configure .abi Build Target`);
-            return;
-        }
+    registerEOSCodeCommand(context, 'extension.inputContractOption', () => 
+    {
+        inputContractOption(option => vscode.window.showInformationMessage(`option : ${option}`));
+    });
 
-        const wastSourceName = getOnlyFileName(wastSource);
-        const wastSourceExt = path.extname(wastSource);
-        if (!wastTargets.find((e) => { return e == wastSourceExt; }))
-        {
-            vscode.window.showErrorMessage(`Invalid file extension : "${wastSourceExt}". expected : ` + wastTargets);
-            return;    
-        }
+    registerEOSCodeCommand(context, 'extension.buildContract', () => 
+    {
+        buildContract(terminal);
+    });
 
-        const abiSourceName = getOnlyFileName(abiSource);
-        const abiSourceExt = path.extname(abiSource);
-        if (!abiTargets.find((e) => { return e == abiSourceExt; }))
-        {
-            vscode.window.showErrorMessage(`Invalid file extension : "${abiSourceExt}". expected : ` + abiTargets);
-            return;    
-        }
-
-        const wastTargetName = wastSourceName + ".wast";
-        createWAST(terminal, wastSource, wastTargetName);
-
-        const abiTargetName = abiSourceName + ".abi";
-        createABI(terminal, abiSource, abiTargetName);
-
+    registerEOSCodeCommand(context, 'extension.setContract', () => 
+    {
         setContract(terminal);
     });
-    context.subscriptions.push(disposable);
+
+    registerEOSCodeCommand(context, 'extension.buildAndSetContract', () => 
+    {
+        buildContract(terminal);
+        setContract(terminal);
+    });
 }
 
 // this method is called when your extension is deactivated
 export function deactivate() {
+}
+
+function registerEOSCodeCommand(
+    context: vscode.ExtensionContext, 
+    command: string, 
+    callback: (...args: any[]) => any) 
+{
+    let disposable = vscode.commands.registerCommand(command, () => 
+    {
+        onPreCommand();
+        callback.call(null);
+    });
+    context.subscriptions.push(disposable);
+}
+
+function onPreCommand()
+{
+    loadConfig();
 }
 
 function getCurrentFilePath() : string
@@ -143,26 +126,80 @@ function selectTerminal(terminal : vscode.Terminal)
     terminal.show();
 }
 
-// > eosiocpp -o targetName fileName
-function createWAST(terminal : vscode.Terminal, source : string, target : string)
+function getValidTargetDir(filePath : string) : string
 {
-    selectTerminal(terminal);
-    
-    const eosiocppPath = configs.eosPath.eosiocppPath;
-    terminal.sendText(eosiocppPath + ` -o ${target} ${source}`);
-    vscode.window.showInformationMessage(eosiocppPath + ` -o ${target} ${source}`);
-    setWASTSource(source);
+    let targetDir = configs.buildTarget.targetDir;
+
+    if (!fs.existsSync(targetDir))
+    {   // update to current dir.
+        targetDir = path.dirname(filePath);
+    }
+
+    if(path.basename(targetDir) != getOnlyFileName(filePath))
+    {
+        let errorMsg = 'Error(buildTarget.targetDir) : Invalid targetDir name. It must equal with source(.cpp) and target file (.wast) name.';
+        vscode.window.showErrorMessage(errorMsg);
+        throw Error(errorMsg)
+    }
+
+    configs.buildTarget.targetDir = targetDir;
+    return targetDir;
 }
 
-// > eosiocpp -g targetName fileName
-function createABI(terminal : vscode.Terminal, source : string, target : string)
+// > eosiocpp -o targetName fileName
+function createWAST(terminal : vscode.Terminal, filePath : string)
 {
     selectTerminal(terminal);
+
+    if (!filePath.length)
+        return;
     
+    const onlyName = getOnlyFileName(filePath);
+    const ext = path.extname(filePath);
+    if (!wastTargets.find((e) => { return e == ext; }))
+    {
+        vscode.window.showErrorMessage(`Error(wast) : Invalid file extension : "${ext}". expected : ` + wastTargets);
+        return;    
+    }
+
+    configs.buildTarget.wastSource = filePath;
+
+    const targetDir = getValidTargetDir(filePath);
+    
+    const targetName = `${targetDir}/${onlyName}.wast`;
     const eosiocppPath = configs.eosPath.eosiocppPath;
-    terminal.sendText(eosiocppPath + ` -g ${target} ${source}`);
-    vscode.window.showInformationMessage(eosiocppPath + ` -g ${target} ${source}`);
-    setABISource(source);
+    terminal.sendText(eosiocppPath + ` -o ${targetName} ${filePath}`);
+    vscode.window.showInformationMessage(eosiocppPath + ` -o ${targetName} ${filePath}`);
+
+    saveConfig(configs);
+}
+
+
+// > eosiocpp -g targetName fileName
+function createABI(terminal : vscode.Terminal, filePath : string)
+{
+    selectTerminal(terminal);
+
+    if (!filePath.length)
+        return;
+
+    const onlyName = getOnlyFileName(filePath);
+    const ext = path.extname(filePath);
+    if (!abiTargets.find((e) => { return e == ext; }))
+    {
+        vscode.window.showErrorMessage(`Invalid file extension : "${ext}". expected : ` + abiTargets);
+        return;    
+    }
+
+    configs.buildTarget.abiSource = filePath;
+    
+    const targetDir = getValidTargetDir(filePath);;
+
+    const targetName = `${targetDir}/${onlyName}.abi`;
+    const eosiocppPath = configs.eosPath.eosiocppPath;
+    terminal.sendText(eosiocppPath + ` -g ${targetName} ${filePath}`);
+    vscode.window.showInformationMessage(eosiocppPath + ` -g ${targetName} ${filePath}`);
+    saveConfig(configs);
 }
 
 function getConfigPath() : string
@@ -226,42 +263,130 @@ function saveConfig(obj : any)
     fs.writeFileSync(configPath, configContents, 'utf8');
 }
 
-function setABISource(filePath : string)
-{
-    configs.buildTarget.abiSource = filePath;
-    saveConfig(configs);
-}
-
-function setWASTSource(filePath : string)
-{
-    configs.buildTarget.wastSource = filePath;
-    saveConfig(configs);
-}
-
 function getOnlyFileName(filePath : string)
 {
-    let fileBaseName = path.basename(filePath);
-
-    let pos = fileBaseName.lastIndexOf('.');
-    if(pos != fileBaseName.length)
-    {
-        return fileBaseName.slice(0, pos);
-    }
-    
+    let extName = path.extname(filePath);
+    let fileBaseName = path.basename(filePath, extName);
     return fileBaseName;
 }
 
 function setContract(terminal : vscode.Terminal)
 {
-    const account = configs.contract.account;
+    let account = configs.contract.account;
     const option = configs.contract.option;
-    const dir = configs.contract.dir;
+    const dir = configs.buildTarget.targetDir;
+
+    if(account.length == 0)
+    {
+        inputContractAccount(accountFromUser => {
+            setContract(terminal);
+        });
+        return;
+    }
+
+    if (dir.length == 0)
+    {
+        vscode.window.showErrorMessage('Error(buildTarget.targetDir) : Please check your contract target dir.');
+        return;
+    }
 
     selectTerminal(terminal);
-    
-    const cleosPath = configs.eosPath.cleosPath;
 
-    const cmd = cleosPath + ` set contract ${option} ${account} ${dir}`;
+    const cmd = getCleosPath() + ` set contract ${option} ${account} ${dir}`;
     terminal.sendText(cmd);
     vscode.window.showInformationMessage(cmd);
+}
+
+// get cleos path with option
+function getCleosPath()
+{
+    const cleosPath = configs.eosPath.cleosPath;
+    const cleosOption = configs.eosPath.cleosOption;
+    return `${cleosPath} ${cleosOption}`;
+}
+
+function buildContract(terminal : vscode.Terminal)
+{
+    const wastSource = configs.buildTarget.wastSource;
+    const abiSource = configs.buildTarget.abiSource;
+    if (wastSource.length == 0 ||
+        !fs.existsSync(wastSource))
+    {
+        //TODO@CityOfStars - input new source
+        vscode.window.showErrorMessage(`Error(wastSource) : Please configure .wast Build Target`);
+        return;
+    }
+
+    if (abiSource.length == 0 ||
+        !fs.existsSync(abiSource))
+    {
+        //TODO@CityOfStars - input new source
+        vscode.window.showErrorMessage(`Error(abiSource) : Please configure .abi Build Target`);
+        return;
+    }
+
+    createWAST(terminal, configs.buildTarget.wastSource);
+    createABI(terminal, configs.buildTarget.abiSource);
+}
+
+function runTestCode()
+{
+    const result = vscode.window.showInputBox({
+        value: 'abcdef',
+        valueSelection: [2, 4],
+        placeHolder: 'For example: fedcba. But not: 123',
+        validateInput: text => {
+            vscode.window.showInformationMessage(`Validating: ${text}`);
+            return text === '123' ? 'Not 123!' : null;
+        }
+    });
+    
+    result.then(result => vscode.window.showInformationMessage(`Got: ${result}`));
+}
+
+function input(myPlaceHolder : string, callback : (...args: any[]) => any)
+{
+    const inputValue = vscode.window.showInputBox({
+        placeHolder: myPlaceHolder
+    }); 
+    
+    inputValue.then(inputValue => {
+        callback.call(null, inputValue);
+    });
+}
+
+function inputContractAccount(callback : (...args: any[]) => any)
+{
+    input('Your contract account.', account => {
+        if (!account ||
+            account.length == 0)
+        {
+            const errorMsg = 'Error(contract.account) : Please check your contract account.'
+            vscode.window.showErrorMessage(errorMsg);
+            throw Error(errorMsg);    
+        }
+
+        configs.contract.account = account;
+        saveConfig(configs);
+
+        callback.call(null, account);
+    });
+}
+
+function inputContractOption(callback : (...args: any[]) => any)
+{
+    input('Your option of contract. (set contract [option] account ...)', option => {
+        if (!option ||
+            option.length == 0)
+        {
+            const errorMsg = 'Error(contract.option) : Please check your contract option.'
+            vscode.window.showErrorMessage(errorMsg);
+            throw Error(errorMsg);
+        }
+
+        configs.contract.option = option;
+        saveConfig(configs);
+
+        callback.call(null, option);
+    });
 }
