@@ -5,13 +5,13 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path'
 import { runInThisContext } from 'vm';
+import { SSL_OP_EPHEMERAL_RSA } from 'constants';
 
 // default configs
 let configs = 
 {
     eosPath: {
         eosiocppPath: "eosiocpp",
-        nodeosPath: "nodeos",
         cleosPath: "cleos",
         cleosOption: "-u http://127.0.0.1:8888 --wallet-url http://127.0.0.1:8900" // local net
     },
@@ -80,6 +80,11 @@ export function activate(context: vscode.ExtensionContext) {
     {
         buildContract(terminal);
         setContract(terminal);
+    });
+
+    registerEOSCodeCommand(context, 'extension.unlockWallet', () => 
+    {
+        unlockWallet(terminal);
     });
 }
 
@@ -348,7 +353,19 @@ function runTestCode()
 function input(myPlaceHolder : string, callback : (...args: any[]) => any)
 {
     const inputValue = vscode.window.showInputBox({
-        placeHolder: myPlaceHolder
+        placeHolder: myPlaceHolder,
+    }); 
+    
+    inputValue.then(inputValue => {
+        callback.call(null, inputValue);
+    });
+}
+
+function inputFixed(myPlaceHolder : string, callback : (...args: any[]) => any)
+{
+    const inputValue = vscode.window.showInputBox({
+        placeHolder: myPlaceHolder,
+        ignoreFocusOut: true
     }); 
     
     inputValue.then(inputValue => {
@@ -389,5 +406,24 @@ function inputContractOption(callback : (...args: any[]) => any)
         saveConfig(configs);
 
         callback.call(null, option);
+    });
+}
+
+function sleep(ms: number) 
+{
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function unlockWallet(terminal : vscode.Terminal)
+{
+    selectTerminal(terminal);
+    let cmd = getCleosPath() + " wallet unlock";
+    terminal.sendText(cmd);
+
+    await sleep(1000);
+
+    inputFixed('Your wallet passward.', pw => {
+        selectTerminal(terminal);
+        terminal.sendText(pw);
     });
 }

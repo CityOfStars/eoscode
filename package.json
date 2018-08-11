@@ -17,7 +17,8 @@
         "onCommand:extension.inputContractAccount",
         "onCommand:extension.buildContract",
         "onCommand:extension.setContract",
-        "onCommand:extension.buildAndSetContract"
+        "onCommand:extension.buildAndSetContract",
+        "onCommand:extension.unlockWallet"
     ],
     "main": "./out/extension",
     "contributes": {
@@ -53,6 +54,10 @@
             {
                 "command": "extension.buildAndSetContract",
                 "title": "EOSCode : Build And Set Contract (contract account is required.)"
+            },
+            {
+                "command": "extension.unlockWallet",
+                "title": "EOSCode : Unlock Wallet"
             }
         ]
     },
