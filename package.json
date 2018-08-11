@@ -29,35 +29,35 @@
             },
             {
                 "command": "extension.createWAST",
-                "title": "EOSCode : Create .wast"
+                "title": "EOSCode : BuildTarget : Create .wast With Current File"
             },
             {
                 "command": "extension.createABI",
-                "title": "EOSCode : Create .abi"
+                "title": "EOSCode : BuildTarget : Create .abi With Current File"
             },
             {
                 "command": "extension.inputContractAccount",
-                "title": "EOSCode : Input Contract Account"
+                "title": "EOSCode : Contract : Input Contract Account"
             },
             {
                 "command": "extension.inputContractOption",
-                "title": "EOSCode : Input Contract Option"
-            },
-            {
-                "command": "extension.buildContract",
-                "title": "EOSCode : Build Contract (create .wast and .abi)"
+                "title": "EOSCode : Contract : Input Contract Option"
             },
             {
                 "command": "extension.setContract",
-                "title": "EOSCode : Set Contract To Account"
+                "title": "EOSCode : Contract : Set Contract To Account"
+            },
+            {
+                "command": "extension.buildContract",
+                "title": "EOSCode : IntegratedBuild : Build Contract (create .wast and .abi)"
             },
             {
                 "command": "extension.buildAndSetContract",
-                "title": "EOSCode : Build And Set Contract (contract account is required.)"
+                "title": "EOSCode : IntegratedBuild : Build And Set Contract (contract account is required.)"
             },
             {
                 "command": "extension.unlockWallet",
-                "title": "EOSCode : Unlock Wallet"
+                "title": "EOSCode : Wallet : Unlock Wallet"
             }
         ]
     },
