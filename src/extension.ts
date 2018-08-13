@@ -41,7 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     registerEOSCodeCommand(context, 'extension.test', () => 
     {
-        runTestCode();
+        runTestCode(context);
     });
 
     registerEOSCodeCommand(context, 'extension.createWAST', () => 
@@ -335,19 +335,24 @@ function buildContract(terminal : vscode.Terminal)
     createABI(terminal, configs.buildTarget.abiSource);
 }
 
-function runTestCode()
+function runTestCode(context : vscode.ExtensionContext)
 {
-    const result = vscode.window.showInputBox({
-        value: 'abcdef',
-        valueSelection: [2, 4],
-        placeHolder: 'For example: fedcba. But not: 123',
-        validateInput: text => {
-            vscode.window.showInformationMessage(`Validating: ${text}`);
-            return text === '123' ? 'Not 123!' : null;
+    // Create and show panel
+    const panel = vscode.window.createWebviewPanel('catCoding', "Cat Coding", vscode.ViewColumn.One, 
+        {
+            enableScripts: true
+        });
+
+    // And set its HTML content
+    panel.webview.html = getWebviewContent();
+
+    panel.webview.onDidReceiveMessage(message => {
+        switch (message.command) {
+            case 'alert':
+                vscode.window.showErrorMessage(message.text);
+                return;
         }
-    });
-    
-    result.then(result => vscode.window.showInformationMessage(`Got: ${result}`));
+    }, undefined, context.subscriptions);
 }
 
 function input(myPlaceHolder : string, callback : (...args: any[]) => any)
@@ -426,4 +431,39 @@ async function unlockWallet(terminal : vscode.Terminal)
         selectTerminal(terminal);
         terminal.sendText(pw);
     });
+}
+
+function getWebviewContent() {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat Coding</title>
+</head>
+<body>
+    <script>
+        const vscode = acquireVsCodeApi();
+
+        function doSomething()
+        {
+            let textInput = document.getElementById('text_input');
+            textInput.value = 'abcd';
+            
+            vscode.postMessage({
+                command: 'alert',
+                text: textInput.value
+            });
+
+            return false;
+        }
+    </script>
+    <img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="300" />
+    <form onsubmit="return doSomething();" class="my-form">
+        <input type="text" value="abc" id="text_input"/>
+        <input type="number" value="123" />
+        <input type="submit" value="Submit" />
+    </form>    
+</body>
+</html>`;
 }
