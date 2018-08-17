@@ -295,8 +295,8 @@ function setContract(terminal : vscode.Terminal)
 
     selectTerminal(terminal);
 
-    let wast = path.join(dir, getOnlyFileName(configs.buildTarget.wastSource) + ".wast");
-    let abi = path.join(dir, getOnlyFileName(configs.buildTarget.abiSource) + ".abi");
+    let wast = getWastPath();
+    let abi = getABIPath(); 
 
     const cmd = getCleosPath() + ` set contract ${option} ${account} ${dir} ${wast} ${abi} ${permission}`;
     terminal.sendText(cmd);
@@ -433,8 +433,33 @@ async function unlockWallet(terminal : vscode.Terminal)
     });
 }
 
+function getABIPath() : string
+{
+    const dir = configs.buildTarget.targetDir;
+    return path.join(dir, getOnlyFileName(configs.buildTarget.abiSource) + ".abi");
+}
+
+function getWastPath() : string
+{
+    const dir = configs.buildTarget.targetDir;
+    return path.join(dir, getOnlyFileName(configs.buildTarget.wastSource) + ".wast");
+}
+
 function getWebviewContent() {
-    return `<!DOCTYPE html>
+    let abiContents =  JSON.parse(fs.readFileSync(getABIPath(), 'utf8'));
+    //console.log(JSON.stringify(abiContents.actions, null, 4));
+    
+    let functionNames = [];
+    let actions = abiContents.actions;
+    for (let i = 0; i < actions.length; i++)
+    {
+        let obj = actions[i];
+        //console.log(obj['name']);   // function names
+        functionNames.push(obj['name']);
+    }
+
+    let contents = 
+`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -444,26 +469,84 @@ function getWebviewContent() {
 <body>
     <script>
         const vscode = acquireVsCodeApi();
+        `
 
-        function doSomething()
+    for (let i = 0; i < functionNames.length; i++)
+    {
+        let functionName = functionNames[i];
+        contents += `function on${functionName}()
         {
-            let textInput = document.getElementById('text_input');
-            textInput.value = 'abcd';
+            let t = '${functionName}() - ';
+            //document.forms["${functionName}"]["fname"].value;
+            let form = document.forms["${functionName}"];
+            let inputElements = form.getElementsByTagName("INPUT");
+
+            let isFirst = true;
+            for (let i =0; i< inputElements.length; i++)
+            {
+                if(inputElements[i].getAttribute("type") != "submit")
+                {
+                    if(!isFirst)
+                    {
+                        t += ' / ';
+                    }
+                    isFirst = false;
+
+                    let paramName = inputElements[i].getAttribute("name");
+                    let value = inputElements[i].value;
+
+                    t += paramName + ':' + value;
+                }
+            }
             
             vscode.postMessage({
                 command: 'alert',
-                text: textInput.value
+                text: t
             });
 
             return false;
         }
-    </script>
-    <img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="300" />
-    <form onsubmit="return doSomething();" class="my-form">
-        <input type="text" value="abc" id="text_input"/>
-        <input type="number" value="123" />
-        <input type="submit" value="Submit" />
-    </form>    
-</body>
-</html>`;
+        `
+    }
+    
+    contents += `</script>
+    <img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="300" />`
+    let structs = abiContents.structs;
+    for (let i = 0; i < structs.length; i++)
+    {
+        let obj = structs[i];
+        //console.log(obj['name']);   // structs names
+        let functionName = obj['name'];
+        //console.log("rammerchoi : " + functionNames.indexOf('rammerchoi'))
+        if (functionNames.indexOf(functionName) == -1)
+            continue;
+        
+        // obj == function
+        console.log(functionName);
+        let fields = obj['fields'];
+        let nameTag = `<br/><br/><h2>${functionName}</h2><hr/>`;
+        contents += nameTag;
+        
+        contents +=`<form onsubmit="return on${functionName}();" name="${functionName}" id="${functionName}">
+        `;
+        
+        for (let k = 0; k < fields.length; k++)
+        {
+            let f = fields[k];
+            let fieldName = f['name'];
+            let fieldType = f['type'];
+//            let nodeName = `${functionName}_${fieldName}`;
+            let tag = `${fieldName}(${fieldType}) : <input type="text" name="${fieldName}" id="${fieldName}"/><br/>
+            `;
+            
+            contents += tag;
+        }
+        
+        contents += `<input type="submit" value="Submit" /></form>
+        
+        `;
+    }
+    contents +=`</body></html>`;
+
+    return contents;
 }
