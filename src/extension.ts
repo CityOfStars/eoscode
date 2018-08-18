@@ -23,7 +23,8 @@ let configs =
     contract: {
         account: "",
         option: "",
-        permission: ""
+        permission: "",
+        user: "YOUR_USER_ACCOUNT@active"
     }
 };
 
@@ -86,6 +87,12 @@ export function activate(context: vscode.ExtensionContext) {
     {
         unlockWallet(terminal);
     });
+    
+    registerEOSCodeCommand(context, 'extension.showContractInterface', () => 
+    {
+        showContractInterface(context, terminal);
+    });
+
 }
 
 // this method is called when your extension is deactivated
@@ -344,7 +351,7 @@ function runTestCode(context : vscode.ExtensionContext)
         });
 
     // And set its HTML content
-    panel.webview.html = getWebviewContent();
+    panel.webview.html = getABIWebviewContent();
 
     panel.webview.onDidReceiveMessage(message => {
         switch (message.command) {
@@ -445,7 +452,7 @@ function getWastPath() : string
     return path.join(dir, getOnlyFileName(configs.buildTarget.wastSource) + ".wast");
 }
 
-function getWebviewContent() {
+function getABIWebviewContent() {
     let abiContents =  JSON.parse(fs.readFileSync(getABIPath(), 'utf8'));
     //console.log(JSON.stringify(abiContents.actions, null, 4));
     
@@ -470,13 +477,15 @@ function getWebviewContent() {
     <script>
         const vscode = acquireVsCodeApi();
         `
-
     for (let i = 0; i < functionNames.length; i++)
     {
         let functionName = functionNames[i];
         contents += `function on${functionName}()
         {
-            let t = '${functionName}() - ';
+            let accountForm = document.forms["user-account"];
+            let account = accountForm.getElementsByTagName("INPUT")[0].value;
+
+            let t = account + '$${functionName}()';
             //document.forms["${functionName}"]["fname"].value;
             let form = document.forms["${functionName}"];
             let inputElements = form.getElementsByTagName("INPUT");
@@ -488,19 +497,19 @@ function getWebviewContent() {
                 {
                     if(!isFirst)
                     {
-                        t += ' / ';
+                        t += ',';
                     }
                     isFirst = false;
 
                     let paramName = inputElements[i].getAttribute("name");
                     let value = inputElements[i].value;
 
-                    t += paramName + ':' + value;
+                    t += '\"' + value + '\"';
                 }
             }
             
             vscode.postMessage({
-                command: 'alert',
+                command: 'pushAction',
                 text: t
             });
 
@@ -509,8 +518,14 @@ function getWebviewContent() {
         `
     }
     
-    contents += `</script>
-    <img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="300" />`
+    // user account
+    contents += `</script><br/>
+    <h1>Setting</h1><hr/>
+    <form name="user-account">
+        user account : <input type="text" name="account" value="${configs.contract.user}" />
+    </form><br/><br/>
+    <h1>Functions</h1><hr/>
+    `
     let structs = abiContents.structs;
     for (let i = 0; i < structs.length; i++)
     {
@@ -536,17 +551,58 @@ function getWebviewContent() {
             let fieldName = f['name'];
             let fieldType = f['type'];
 //            let nodeName = `${functionName}_${fieldName}`;
-            let tag = `${fieldName}(${fieldType}) : <input type="text" name="${fieldName}" id="${fieldName}"/><br/>
+            let tag = `${fieldName}(${fieldType}) : <input type="text" name="${fieldName}" id="${fieldName}"/><br/><br/>
             `;
             
             contents += tag;
         }
         
-        contents += `<input type="submit" value="Submit" /></form>
+        contents += `<input type="submit" value="Push Action" /></form>
         
         `;
     }
+
+    //TODO - form : input table scope & get table
+
     contents +=`</body></html>`;
 
     return contents;
+}
+
+function showContractInterface(context : vscode.ExtensionContext, terminal : vscode.Terminal)
+{
+     // Create and show panel
+     const panel = vscode.window.createWebviewPanel('contractInterface', "EOS Code - Contract Interface", vscode.ViewColumn.One, 
+     {
+         enableScripts: true
+     });
+
+    // And set its HTML content
+    panel.webview.html = getABIWebviewContent();
+
+    panel.webview.onDidReceiveMessage(message => {
+        switch (message.command) {
+            case 'pushAction':
+                vscode.window.showInformationMessage(message.text);
+                
+                const userSepIndex = message.text.indexOf('$');
+                const userAccount = message.text.slice(0, userSepIndex);
+                configs.contract.user = userAccount;
+                saveConfig(configs);
+
+                const functionSepIndex = message.text.indexOf('(');
+                const functionName = message.text.slice(userSepIndex + 1, functionSepIndex);
+                //console.log(`${userAccount}, ${functionName}`);
+
+                const paramString = message.text.slice(functionSepIndex + 2);
+                const params = `'[${paramString}]'`;
+                //console.log(params);
+
+                let cmd = `${getCleosPath()} push action ${configs.contract.account} ${functionName} ${params} -p ${userAccount}`;
+                selectTerminal(terminal);
+                terminal.sendText(cmd);
+
+                return;
+        }
+    }, undefined, context.subscriptions);
 }
