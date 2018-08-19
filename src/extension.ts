@@ -465,6 +465,15 @@ function getABIWebviewContent() {
         functionNames.push(obj['name']);
     }
 
+    let tableNames = [];
+    let tables = abiContents.tables;
+    for(let i = 0; i < tables.length; i++)
+    {
+        let table = tables[i];
+        tableNames.push(table.name);
+    }
+
+    // MUST REFACTOR IT
     let contents = 
 `<!DOCTYPE html>
 <html lang="en">
@@ -486,8 +495,7 @@ function getABIWebviewContent() {
             let account = accountForm.getElementsByTagName("INPUT")[0].value;
 
             let t = account + '$${functionName}()';
-            //document.forms["${functionName}"]["fname"].value;
-            let form = document.forms["${functionName}"];
+            let form = document.forms["func${functionName}"];
             let inputElements = form.getElementsByTagName("INPUT");
 
             let isFirst = true;
@@ -501,7 +509,7 @@ function getABIWebviewContent() {
                     }
                     isFirst = false;
 
-                    let paramName = inputElements[i].getAttribute("name");
+                    //let paramName = inputElements[i].getAttribute("name");
                     let value = inputElements[i].value;
 
                     t += '\"' + value + '\"';
@@ -516,6 +524,32 @@ function getABIWebviewContent() {
             return false;
         }
         `
+    }
+
+    for (let i = 0; i < tableNames.length; i++)
+    {
+        let tableName = tableNames[i];
+        contents += 
+        `
+        function get${tableName}()
+        {
+            let form = document.forms["table${tableName}"];
+            let scope = form.getElementsByTagName("INPUT")[0].value;
+            //let inputElements = form.getElementsByTagName("INPUT"); // scope
+
+            //let scope = inputElements[0].value;
+        
+            //let t = scope + '$' + tableName;
+            let t = '${tableName}@' + scope;
+
+            vscode.postMessage({
+                command: 'getTable',
+                text: t
+            });
+
+            return false;
+        }
+        `;
     }
     
     // user account
@@ -542,7 +576,7 @@ function getABIWebviewContent() {
         let nameTag = `<br/><br/><h2>${functionName}</h2><hr/>`;
         contents += nameTag;
         
-        contents +=`<form onsubmit="return on${functionName}();" name="${functionName}" id="${functionName}">
+        contents +=`<form onsubmit="return on${functionName}();" name="func${functionName}" id="${functionName}">
         `;
         
         for (let k = 0; k < fields.length; k++)
@@ -563,6 +597,23 @@ function getABIWebviewContent() {
     }
 
     //TODO - form : input table scope & get table
+    contents += `<br/><br/><h1>Tables</h1><hr/>`;
+
+    let tableContents = '';
+    for(let i = 0; i < tableNames.length; i++)
+    {
+        let tableName = tableNames[i];
+        tableContents += `<br/><br/><h2>${tableName}</h2><hr/>`;
+        tableContents += 
+`       
+        <form name="table${tableName}" onsubmit="return get${tableName}();">
+            scope : <input type="text" name="scope" />
+            <input type="submit" value="Get Table" />
+        </form><br/><br/>
+`
+    }
+
+    contents += tableContents;
 
     contents +=`</body></html>`;
 
@@ -583,6 +634,7 @@ function showContractInterface(context : vscode.ExtensionContext, terminal : vsc
     panel.webview.onDidReceiveMessage(message => {
         switch (message.command) {
             case 'pushAction':
+            {
                 vscode.window.showInformationMessage(message.text);
                 
                 const userSepIndex = message.text.indexOf('$');
@@ -603,6 +655,19 @@ function showContractInterface(context : vscode.ExtensionContext, terminal : vsc
                 terminal.sendText(cmd);
 
                 return;
+            }
+            case 'getTable':
+            {
+                vscode.window.showInformationMessage(message.text);
+
+                const tableSepIndex = message.text.indexOf('@');
+                const tableName = message.text.slice(0, tableSepIndex);
+                const scope = message.text.slice(tableSepIndex + 1);
+                let cmd = `${getCleosPath()} get table ${configs.contract.account} ${scope} ${tableName}`;
+                selectTerminal(terminal);
+                terminal.sendText(cmd);
+                return;
+            }
         }
     }, undefined, context.subscriptions);
 }
