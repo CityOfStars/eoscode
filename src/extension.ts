@@ -3,9 +3,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import * as path from 'path'
-import { runInThisContext } from 'vm';
-import { SSL_OP_EPHEMERAL_RSA } from 'constants';
+import * as path from 'path';
 
 // default configs
 let configs = 
