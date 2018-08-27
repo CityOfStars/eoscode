@@ -141,13 +141,15 @@ function getValidTargetDir(filePath : string) : string
 {
     let targetDir = configs.buildTarget.targetDir;
 
-    if (!fs.existsSync(targetDir))
+    if(targetDir.length == 0)
     {   // update to current dir.
         targetDir = path.dirname(filePath);
         configs.buildTarget.targetDir = targetDir;
-        
-        let errorMsg = 'Error(buildTarget.targetDir) : No exist directory : ${targetDir}. Reset targetDir to source file directory.';
-        vscode.window.showErrorMessage(errorMsg);
+    }
+
+    if (!fs.existsSync(targetDir))
+    {   
+        fs.mkdirSync(targetDir);
     }
 
     return targetDir;
