@@ -4,31 +4,30 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export class EOSCode {
-    public context: vscode.ExtensionContext;
+export class ConfigMgr {
     // default configs
     public configs =
-        {
-            eosPath: {
-                eosiocppPath: "eosiocpp",
-                cleosPath: "cleos",
-                cleosOption: "-u http://127.0.0.1:8888 --wallet-url http://127.0.0.1:8900" // local net
-            },
-            buildTarget: {
-                wastSource: "",
-                abiSource: "",
-                targetDir: ""
-            },
-            contract: {
-                account: "",
-                option: "",
-                permission: "",
-                user: "YOUR_USER_ACCOUNT@active"
-            }
-        };
+    {
+        eosPath: {
+            eosiocppPath: "eosiocpp",
+            cleosPath: "cleos",
+            cleosOption: "-u http://127.0.0.1:8888 --wallet-url http://127.0.0.1:8900" // local net
+        },
+        buildTarget: {
+            wastSource: "",
+            abiSource: "",
+            targetDir: ""
+        },
+        contract: {
+            account: "",
+            option: "",
+            permission: "",
+            user: "YOUR_USER_ACCOUNT@active"
+        }
+    };
 
-    constructor(context: vscode.ExtensionContext) {
-        this.context = context;
+    constructor() {
+        // do something...
     }
 
     public loadConfig(): Boolean {
@@ -82,6 +81,4 @@ export class EOSCode {
 
         return configPath;
     }
-
-    
 }

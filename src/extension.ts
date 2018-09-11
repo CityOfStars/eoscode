@@ -4,7 +4,10 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { EOSCode } from './eoscode';
+import { EOSCode } from './EOSCode/EOSCode';
+
+//todo@cityofstars - remove
+import {ConfigMgr} from './EOSCode/configMgr';
 
 const wastTargets : string[] = ['.cpp'];
 const abiTargets : string[] = ['.hpp', '.h', '.cpp'];
@@ -17,60 +20,60 @@ export function activate(context: vscode.ExtensionContext) {
     let terminal = vscode.window.createTerminal('eoscode terminal');
     context.subscriptions.push(terminal);
 
-    eoscode = new EOSCode(context);
+    eoscode = new EOSCode(context, terminal);
 
     console.log('Congratulations, your extension "eoscode" is now active!');
-    eoscode.loadConfig();
+    eoscode.configMgr.loadConfig();
 
-    registerEOSCodeCommand(context, 'extension.test', () => 
+    eoscode.registerEOSCodeCommand('extension.test', () => 
     {
         runTestCode(context);
     });
 
-    registerEOSCodeCommand(context, 'extension.createWAST', () => 
+    eoscode.registerEOSCodeCommand('extension.createWAST', () => 
     {
         const filePath = getCurrentFilePath();
         createWAST(terminal, filePath);
     });
 
-    registerEOSCodeCommand(context, 'extension.createABI', () => 
+    eoscode.registerEOSCodeCommand('extension.createABI', () => 
     {
         const filePath = getCurrentFilePath();
         createABI(terminal, filePath);
     });
 
-    registerEOSCodeCommand(context, 'extension.inputContractAccount', () => 
+    eoscode.registerEOSCodeCommand('extension.inputContractAccount', () => 
     {
         inputContractAccount(account => vscode.window.showInformationMessage(`contract account : ${account}`));
     });
 
-    registerEOSCodeCommand(context, 'extension.inputContractOption', () => 
+    eoscode.registerEOSCodeCommand('extension.inputContractOption', () => 
     {
         inputContractOption(option => vscode.window.showInformationMessage(`option : ${option}`));
     });
 
-    registerEOSCodeCommand(context, 'extension.buildContract', () => 
+    eoscode.registerEOSCodeCommand('extension.buildContract', () => 
     {
         buildContract(terminal);
     });
 
-    registerEOSCodeCommand(context, 'extension.setContract', () => 
+    eoscode.registerEOSCodeCommand('extension.setContract', () => 
     {
         setContract(terminal);
     });
 
-    registerEOSCodeCommand(context, 'extension.buildAndSetContract', () => 
+    eoscode.registerEOSCodeCommand('extension.buildAndSetContract', () => 
     {
         buildContract(terminal);
         setContract(terminal);
     });
 
-    registerEOSCodeCommand(context, 'extension.unlockWallet', () => 
+    eoscode.registerEOSCodeCommand('extension.unlockWallet', () => 
     {
         unlockWallet(terminal);
     });
     
-    registerEOSCodeCommand(context, 'extension.showContractInterface', () => 
+    eoscode.registerEOSCodeCommand('extension.showContractInterface', () => 
     {
         showContractInterface(context, terminal);
     });
@@ -79,24 +82,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 // this method is called when your extension is deactivated
 export function deactivate() {
-}
-
-function registerEOSCodeCommand(
-    context: vscode.ExtensionContext, 
-    command: string, 
-    callback: (...args: any[]) => any) 
-{
-    let disposable = vscode.commands.registerCommand(command, () => 
-    {
-        onPreCommand();
-        callback.call(null);
-    });
-    context.subscriptions.push(disposable);
-}
-
-function onPreCommand()
-{
-    eoscode.loadConfig();
 }
 
 function getCurrentFilePath() : string
@@ -123,12 +108,12 @@ function selectTerminal(terminal : vscode.Terminal)
 
 function getValidTargetDir(filePath : string) : string
 {
-    let targetDir = eoscode.configs.buildTarget.targetDir;
+    let targetDir = eoscode.configMgr.configs.buildTarget.targetDir;
 
     if(targetDir.length == 0)
     {   // update to current dir.
         targetDir = path.join(path.dirname(filePath), "output");
-        eoscode.configs.buildTarget.targetDir = targetDir;
+        eoscode.configMgr.configs.buildTarget.targetDir = targetDir;
     }
 
     if (!fs.existsSync(targetDir))
@@ -155,16 +140,16 @@ function createWAST(terminal : vscode.Terminal, filePath : string)
         return;    
     }
 
-    eoscode.configs.buildTarget.wastSource = filePath;
+    eoscode.configMgr.configs.buildTarget.wastSource = filePath;
 
     const targetDir = getValidTargetDir(filePath);
     
     const targetName = `${targetDir}/${onlyName}.wast`;
-    const eosiocppPath = eoscode.configs.eosPath.eosiocppPath;
+    const eosiocppPath = eoscode.configMgr.configs.eosPath.eosiocppPath;
     terminal.sendText(eosiocppPath + ` -o ${targetName} ${filePath}`);
     vscode.window.showInformationMessage(eosiocppPath + ` -o ${targetName} ${filePath}`);
 
-    eoscode.saveConfig(eoscode.configs);
+    eoscode.configMgr.saveConfig(eoscode.configMgr.configs);
 }
 
 
@@ -184,15 +169,15 @@ function createABI(terminal : vscode.Terminal, filePath : string)
         return;    
     }
 
-    eoscode.configs.buildTarget.abiSource = filePath;
+    eoscode.configMgr.configs.buildTarget.abiSource = filePath;
     
     const targetDir = getValidTargetDir(filePath);;
 
     const targetName = `${targetDir}/${onlyName}.abi`;
-    const eosiocppPath = eoscode.configs.eosPath.eosiocppPath;
+    const eosiocppPath = eoscode.configMgr.configs.eosPath.eosiocppPath;
     terminal.sendText(eosiocppPath + ` -g ${targetName} ${filePath}`);
     vscode.window.showInformationMessage(eosiocppPath + ` -g ${targetName} ${filePath}`);
-    eoscode.saveConfig(eoscode.configs);
+    eoscode.configMgr.saveConfig(eoscode.configMgr.configs);
 }
 
 function getOnlyFileName(filePath : string)
@@ -204,10 +189,10 @@ function getOnlyFileName(filePath : string)
 
 function setContract(terminal : vscode.Terminal)
 {
-    let account = eoscode.configs.contract.account;
-    const option = eoscode.configs.contract.option;
-    const dir = eoscode.configs.buildTarget.targetDir;
-    const permission = eoscode.configs.contract.permission;
+    let account = eoscode.configMgr.configs.contract.account;
+    const option = eoscode.configMgr.configs.contract.option;
+    const dir = eoscode.configMgr.configs.buildTarget.targetDir;
+    const permission = eoscode.configMgr.configs.contract.permission;
 
     if(account.length == 0)
     {
@@ -236,15 +221,15 @@ function setContract(terminal : vscode.Terminal)
 // get cleos path with option
 function getCleosPath()
 {
-    const cleosPath = eoscode.configs.eosPath.cleosPath;
-    const cleosOption = eoscode.configs.eosPath.cleosOption;
+    const cleosPath = eoscode.configMgr.configs.eosPath.cleosPath;
+    const cleosOption = eoscode.configMgr.configs.eosPath.cleosOption;
     return `${cleosPath} ${cleosOption}`;
 }
 
 function buildContract(terminal : vscode.Terminal)
 {
-    const wastSource = eoscode.configs.buildTarget.wastSource;
-    const abiSource = eoscode.configs.buildTarget.abiSource;
+    const wastSource = eoscode.configMgr.configs.buildTarget.wastSource;
+    const abiSource = eoscode.configMgr.configs.buildTarget.abiSource;
     if (wastSource.length == 0 ||
         !fs.existsSync(wastSource))
     {
@@ -261,8 +246,8 @@ function buildContract(terminal : vscode.Terminal)
         return;
     }
 
-    createWAST(terminal, eoscode.configs.buildTarget.wastSource);
-    createABI(terminal, eoscode.configs.buildTarget.abiSource);
+    createWAST(terminal, eoscode.configMgr.configs.buildTarget.wastSource);
+    createABI(terminal, eoscode.configMgr.configs.buildTarget.abiSource);
 }
 
 function runTestCode(context : vscode.ExtensionContext)
@@ -319,8 +304,8 @@ function inputContractAccount(callback : (...args: any[]) => any)
             throw Error(errorMsg);    
         }
 
-        eoscode.configs.contract.account = account;
-        eoscode.saveConfig(eoscode.configs);
+        eoscode.configMgr.configs.contract.account = account;
+        eoscode.configMgr.saveConfig(eoscode.configMgr.configs);
 
         callback.call(null, account);
     });
@@ -337,8 +322,8 @@ function inputContractOption(callback : (...args: any[]) => any)
             throw Error(errorMsg);
         }
 
-        eoscode.configs.contract.option = option;
-        eoscode.saveConfig(eoscode.configs);
+        eoscode.configMgr.configs.contract.option = option;
+        eoscode.configMgr.saveConfig(eoscode.configMgr.configs);
 
         callback.call(null, option);
     });
@@ -365,14 +350,14 @@ async function unlockWallet(terminal : vscode.Terminal)
 
 function getABIPath() : string
 {
-    const dir = eoscode.configs.buildTarget.targetDir;
-    return path.join(dir, getOnlyFileName(eoscode.configs.buildTarget.abiSource) + ".abi");
+    const dir = eoscode.configMgr.configs.buildTarget.targetDir;
+    return path.join(dir, getOnlyFileName(eoscode.configMgr.configs.buildTarget.abiSource) + ".abi");
 }
 
 function getWastPath() : string
 {
-    const dir = eoscode.configs.buildTarget.targetDir;
-    return path.join(dir, getOnlyFileName(eoscode.configs.buildTarget.wastSource) + ".wast");
+    const dir = eoscode.configMgr.configs.buildTarget.targetDir;
+    return path.join(dir, getOnlyFileName(eoscode.configMgr.configs.buildTarget.wastSource) + ".wast");
 }
 
 function getABIWebviewContent() {
@@ -479,7 +464,7 @@ function getABIWebviewContent() {
     contents += `</script><br/>
     <h1>Setting</h1><hr/>
     <form name="user-account">
-        user account : <input type="text" name="account" value="${eoscode.configs.contract.user}" />
+        user account : <input type="text" name="account" value="${eoscode.configMgr.configs.contract.user}" />
     </form><br/><br/>
     <h1>Functions</h1><hr/>
     `
@@ -562,8 +547,8 @@ function showContractInterface(context : vscode.ExtensionContext, terminal : vsc
                 
                 const userSepIndex = message.text.indexOf('$');
                 const userAccount = message.text.slice(0, userSepIndex);
-                eoscode.configs.contract.user = userAccount;
-                eoscode.saveConfig(eoscode.configs);
+                eoscode.configMgr.configs.contract.user = userAccount;
+                eoscode.configMgr.saveConfig(eoscode.configMgr.configs);
 
                 const functionSepIndex = message.text.indexOf('(');
                 const functionName = message.text.slice(userSepIndex + 1, functionSepIndex);
@@ -573,7 +558,7 @@ function showContractInterface(context : vscode.ExtensionContext, terminal : vsc
                 const params = `'[${paramString}]'`;
                 //console.log(params);
 
-                let cmd = `${getCleosPath()} push action ${eoscode.configs.contract.account} ${functionName} ${params} -p ${userAccount}`;
+                let cmd = `${getCleosPath()} push action ${eoscode.configMgr.configs.contract.account} ${functionName} ${params} -p ${userAccount}`;
                 selectTerminal(terminal);
                 terminal.sendText(cmd);
 
@@ -586,7 +571,7 @@ function showContractInterface(context : vscode.ExtensionContext, terminal : vsc
                 const tableSepIndex = message.text.indexOf('@');
                 const tableName = message.text.slice(0, tableSepIndex);
                 const scope = message.text.slice(tableSepIndex + 1);
-                let cmd = `${getCleosPath()} get table ${eoscode.configs.contract.account} ${scope} ${tableName}`;
+                let cmd = `${getCleosPath()} get table ${eoscode.configMgr.configs.contract.account} ${scope} ${tableName}`;
                 selectTerminal(terminal);
                 terminal.sendText(cmd);
                 return;
