@@ -60,7 +60,6 @@ export class ConfigMgr {
         return true;
     }
 
-    // todo@cityofstars - make private on finish refactoring
     public saveConfig(obj: any) {
         const configPath = this.getConfigPath();
         const configContents = JSON.stringify(obj, null, 4);
