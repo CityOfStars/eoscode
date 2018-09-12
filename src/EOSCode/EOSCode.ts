@@ -361,7 +361,7 @@ export class EOSCode {
         `
         for (let i = 0; i < functionNames.length; i++) {
             let functionName = functionNames[i];
-            contents += `private on${functionName}()
+            contents += `function on${functionName}()
         {
             let accountForm = document.forms["user-account"];
             let account = accountForm.getElementsByTagName("INPUT")[0].value;
@@ -402,7 +402,7 @@ export class EOSCode {
             let tableName = tableNames[i];
             contents +=
                 `
-        private get${tableName}()
+        function get${tableName}()
         {
             let form = document.forms["table${tableName}"];
             let scope = form.getElementsByTagName("INPUT")[0].value;
@@ -536,6 +536,6 @@ export class EOSCode {
                         return;
                     }
             }
-        }, undefined, this.context.subscriptions);
+        }, this, this.context.subscriptions);
     }
 }
