@@ -6,6 +6,8 @@ import * as path from 'path';
 import { ConfigMgr } from './ConfigMgr';
 import { ABIInterfaceMgr } from './ABIInterfaceMgr';
 
+var util = require("./Util");
+
 function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -105,21 +107,6 @@ export class EOSCode {
         return doc.fileName;
     }
 
-    public getValidTargetDir(filePath: string): string {
-        let targetDir = this.configMgr.configs.buildTarget.targetDir;
-
-        if (targetDir.length == 0) {   // update to current dir.
-            targetDir = path.join(path.dirname(filePath), "output");
-            this.configMgr.configs.buildTarget.targetDir = targetDir;
-        }
-
-        if (!fs.existsSync(targetDir)) {
-            fs.mkdirSync(targetDir);
-        }
-
-        return targetDir;
-    }
-
     // > eosiocpp -o targetName fileName
     private createWAST(filePath: string) {
         this.terminal.show();
@@ -127,23 +114,24 @@ export class EOSCode {
         if (!filePath.length)
             return;
 
-        const onlyName = this.getOnlyFileName(filePath);
+        const onlyName = util.getOnlyFileName(filePath);
         const ext = path.extname(filePath);
         if (!this.wastTargets.find((e) => { return e == ext; })) {
             vscode.window.showErrorMessage(`Error(wast) : Invalid file extension : "${ext}". expected : ` + this.wastTargets);
             return;
         }
 
-        this.configMgr.configs.buildTarget.wastSource = filePath;
+        let configs = this.configMgr.getConfigs();
+        configs.buildTarget.wastSource = filePath;
 
-        const targetDir = this.getValidTargetDir(filePath);
+        const targetDir = this.configMgr.getValidTargetDir(filePath);
 
         const targetName = `${targetDir}/${onlyName}.wast`;
-        const eosiocppPath = this.configMgr.configs.eosPath.eosiocppPath;
+        const eosiocppPath = configs.eosPath.eosiocppPath;
         this.terminal.sendText(eosiocppPath + ` -o ${targetName} ${filePath}`);
         vscode.window.showInformationMessage(eosiocppPath + ` -o ${targetName} ${filePath}`);
 
-        this.configMgr.saveConfig(this.configMgr.configs);
+        this.configMgr.saveConfig(configs);
     }
 
 
@@ -154,35 +142,31 @@ export class EOSCode {
         if (!filePath.length)
             return;
 
-        const onlyName = this.getOnlyFileName(filePath);
+        const onlyName = util.getOnlyFileName(filePath);
         const ext = path.extname(filePath);
         if (!this.abiTargets.find((e) => { return e == ext; })) {
             vscode.window.showErrorMessage(`Invalid file extension : "${ext}". expected : ` + this.abiTargets);
             return;
         }
 
-        this.configMgr.configs.buildTarget.abiSource = filePath;
+        let configs = this.configMgr.getConfigs();
+        configs.buildTarget.abiSource = filePath;
 
-        const targetDir = this.getValidTargetDir(filePath);;
+        const targetDir = this.configMgr.getValidTargetDir(filePath);;
 
         const targetName = `${targetDir}/${onlyName}.abi`;
-        const eosiocppPath = this.configMgr.configs.eosPath.eosiocppPath;
+        const eosiocppPath = configs.eosPath.eosiocppPath;
         this.terminal.sendText(eosiocppPath + ` -g ${targetName} ${filePath}`);
         vscode.window.showInformationMessage(eosiocppPath + ` -g ${targetName} ${filePath}`);
-        this.configMgr.saveConfig(this.configMgr.configs);
-    }
-
-    private getOnlyFileName(filePath: string) {
-        let extName = path.extname(filePath);
-        let fileBaseName = path.basename(filePath, extName);
-        return fileBaseName;
+        this.configMgr.saveConfig(configs);
     }
 
     private setContract() {
-        let account = this.configMgr.configs.contract.account;
-        const option = this.configMgr.configs.contract.option;
-        const dir = this.configMgr.configs.buildTarget.targetDir;
-        const permission = this.configMgr.configs.contract.permission;
+        const configs = this.configMgr.getConfigs();
+        let account = configs.contract.account;
+        const option = configs.contract.option;
+        const dir = configs.buildTarget.targetDir;
+        const permission = configs.contract.permission;
 
         if (account.length == 0) {
             this.inputContractAccount(accountFromUser => {
@@ -198,24 +182,17 @@ export class EOSCode {
 
         this.terminal.show();
 
-        let wast = this.getWastPath();
-        let abi = this.getABIPath();
+        let wast = this.configMgr.getWastPath();
+        let abi = this.configMgr.getABIPath();
 
-        const cmd = this.getCleosPath() + ` set contract ${option} ${account} ${dir} ${wast} ${abi} ${permission}`;
+        const cmd = this.configMgr.getCleosPathWithOption() + ` set contract ${option} ${account} ${dir} ${wast} ${abi} ${permission}`;
         this.terminal.sendText(cmd);
         vscode.window.showInformationMessage(cmd);
     }
 
-    // get cleos path with option
-    private getCleosPath() {
-        const cleosPath = this.configMgr.configs.eosPath.cleosPath;
-        const cleosOption = this.configMgr.configs.eosPath.cleosOption;
-        return `${cleosPath} ${cleosOption}`;
-    }
-
     private buildContract() {
-        const wastSource = this.configMgr.configs.buildTarget.wastSource;
-        const abiSource = this.configMgr.configs.buildTarget.abiSource;
+        const wastSource = this.configMgr.getWastSourcePath();
+        const abiSource = this.configMgr.getAbiSourcePath();
         if (wastSource.length == 0 ||
             !fs.existsSync(wastSource)) {
             //TODO@CityOfStars - input new source
@@ -230,8 +207,8 @@ export class EOSCode {
             return;
         }
 
-        this.createWAST(this.configMgr.configs.buildTarget.wastSource);
-        this.createABI(this.configMgr.configs.buildTarget.abiSource);
+        this.createWAST(wastSource);
+        this.createABI(abiSource);
     }
 
     private runTestCode() {
@@ -242,7 +219,7 @@ export class EOSCode {
             });
 
         // And set its HTML content
-        panel.webview.html = this.abiInterfaceMgr.getABIWebviewContent(this.getABIPath(), this.configMgr.configs.contract.user);
+        panel.webview.html = this.abiInterfaceMgr.getABIWebviewContent(this.configMgr.getABIPath(), this.configMgr.getConfigs().contract.user);
 
         panel.webview.onDidReceiveMessage(message => {
             switch (message.command) {
@@ -283,8 +260,9 @@ export class EOSCode {
                 throw Error(errorMsg);
             }
 
-            this.configMgr.configs.contract.account = account;
-            this.configMgr.saveConfig(this.configMgr.configs);
+            let configs = this.configMgr.getConfigs();
+            configs.contract.account = account;
+            this.configMgr.saveConfig(configs);
 
             callback.call(this, account);
         });
@@ -299,8 +277,9 @@ export class EOSCode {
                 throw Error(errorMsg);
             }
 
-            this.configMgr.configs.contract.option = option;
-            this.configMgr.saveConfig(this.configMgr.configs);
+            let configs = this.configMgr.getConfigs();
+            configs.contract.option = option;
+            this.configMgr.saveConfig(configs);
 
             callback.call(this, option);
         });
@@ -308,7 +287,7 @@ export class EOSCode {
 
     private async unlockWallet() {
         this.terminal.show();
-        let cmd = this.getCleosPath() + " wallet unlock";
+        let cmd = this.configMgr.getCleosPathWithOption() + " wallet unlock";
         this.terminal.sendText(cmd);
 
         await sleep(1000);
@@ -319,25 +298,16 @@ export class EOSCode {
         });
     }
 
-    private getABIPath(): string {
-        const dir = this.configMgr.configs.buildTarget.targetDir;
-        return path.join(dir, this.getOnlyFileName(this.configMgr.configs.buildTarget.abiSource) + ".abi");
-    }
-
-    private getWastPath(): string {
-        const dir = this.configMgr.configs.buildTarget.targetDir;
-        return path.join(dir, this.getOnlyFileName(this.configMgr.configs.buildTarget.wastSource) + ".wast");
-    }
-
     public showContractInterface() {
         // Create and show panel
+        let configs = this.configMgr.getConfigs();
         const panel = vscode.window.createWebviewPanel('contractInterface', "EOS Code - Contract Interface", vscode.ViewColumn.One,
             {
                 enableScripts: true
             });
 
         // And set its HTML content
-        panel.webview.html = this.abiInterfaceMgr.getABIWebviewContent(this.getABIPath(), this.configMgr.configs.contract.user);
+        panel.webview.html = this.abiInterfaceMgr.getABIWebviewContent(this.configMgr.getABIPath(), configs.contract.user);
 
         panel.webview.onDidReceiveMessage(message => {
             switch (message.command) {
@@ -347,8 +317,8 @@ export class EOSCode {
 
                         const userSepIndex = message.text.indexOf('$');
                         const userAccount = message.text.slice(0, userSepIndex);
-                        this.configMgr.configs.contract.user = userAccount;
-                        this.configMgr.saveConfig(this.configMgr.configs);
+                        configs.contract.user = userAccount;
+                        this.configMgr.saveConfig(configs);
 
                         const functionSepIndex = message.text.indexOf('(');
                         const functionName = message.text.slice(userSepIndex + 1, functionSepIndex);
@@ -358,7 +328,7 @@ export class EOSCode {
                         const params = `'[${paramString}]'`;
                         //console.log(params);
 
-                        let cmd = `${this.getCleosPath()} push action ${this.configMgr.configs.contract.account} ${functionName} ${params} -p ${userAccount}`;
+                        let cmd = `${this.configMgr.getCleosPathWithOption()} push action ${configs.contract.account} ${functionName} ${params} -p ${userAccount}`;
                         this.terminal.show();
                         this.terminal.sendText(cmd);
 
@@ -371,7 +341,7 @@ export class EOSCode {
                         const tableSepIndex = message.text.indexOf('@');
                         const tableName = message.text.slice(0, tableSepIndex);
                         const scope = message.text.slice(tableSepIndex + 1);
-                        let cmd = `${this.getCleosPath()} get table ${this.configMgr.configs.contract.account} ${scope} ${tableName}`;
+                        let cmd = `${this.configMgr.getCleosPathWithOption()} get table ${configs.contract.account} ${scope} ${tableName}`;
                         this.terminal.show();
                         this.terminal.sendText(cmd);
                         return;
