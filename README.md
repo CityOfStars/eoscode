@@ -17,3 +17,26 @@ All right reserved by @CityOfStars and @unlimited-network.
 
 ## Extension Settings
 
+1. install node.js with `brew`.
+2. install vscode. 
+3. clone EOSCode and build with vscode.
+4. copy eoscode folder into below.
+  * Windows : %USERPROFILE%\.vscode\extensions
+  * macOS : ~/.vscode/extensions
+  * Linux : ~/.vscode/extensions
+
+## Usage
+
+1. Open eos contract project.
+2. Open .wast build target(.cpp) file.
+3. Input ⇧⌘P.
+4. Type `eoscode`
+5. Select `EOSCode : BuildTarget : Create .wast With Current File`
+6. Open .abi build target(.hpp) file.
+7. Input ⇧⌘P.
+8. Type `eoscode`
+9. Select `EOSCode : BuildTarget : Create .abi With Current File`
+
+And then you can use `EOSCode : IntegratedBuild : Build Contract (create .wast and .abi)` command.
+
+* on working...
