@@ -11,7 +11,9 @@ All right reserved by @CityOfStars and @unlimited-network.
 
 ## Requirements
 
-* on Proceeding...
+* node.js 10.0 &uarr;
+* vscode 1.27 &uarr;
+* Only tested in macOS(High Sierra)
 
 ## Extension Settings
 
