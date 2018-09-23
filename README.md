@@ -21,7 +21,6 @@ All right reserved by @CityOfStars and @unlimited-network.
 2. install vscode. 
 3. clone EOSCode and build with vscode.
 4. copy eoscode folder into below.
-  * Windows : %USERPROFILE%\.vscode\extensions
   * macOS : ~/.vscode/extensions
   * Linux : ~/.vscode/extensions
 
