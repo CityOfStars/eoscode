@@ -184,8 +184,12 @@ export class EOSCode {
 
         let wast = this.configMgr.getWastPath();
         let abi = this.configMgr.getABIPath();
+        
+        wast = path.basename(wast);
+        let wasm = util.getOnlyFileName(wast) + ".wasm";
+        abi = path.basename(abi);
 
-        const cmd = this.configMgr.getCleosPathWithOption() + ` set contract ${option} ${account} ${dir} ${wast} ${abi} ${permission}`;
+        const cmd = this.configMgr.getCleosPathWithOption() + ` set contract ${option} ${account} ${dir} ${wasm} ${abi} ${permission}`;
         this.terminal.sendText(cmd);
         vscode.window.showInformationMessage(cmd);
     }
