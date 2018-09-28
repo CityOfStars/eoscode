@@ -6,7 +6,7 @@ All right reserved by @CityOfStars and @unlimited-network.
 ## Features
 
 * Provides ABI WebView. You no longer need to `push action` at the terminal.
-* Build `.wast`, `.abi` and `set contract` to eos account by ONE-COMMAND.
+* Build `.wasm`, `.abi` and `set contract` to eos account by ONE-COMMAND.
 * Unlock wallet in VSCode.
 
 ## Requirements
@@ -30,7 +30,7 @@ All right reserved by @CityOfStars and @unlimited-network.
 2. Open .wast build target(.cpp) file.
 3. Input ⇧⌘P.
 4. Type `eoscode`
-5. Select `EOSCode : BuildTarget : Create .wast With Current File`
+5. Select `EOSCode : BuildTarget : Create .wasm With Current File`
 6. Open .abi build target(.hpp) file.
 7. Input ⇧⌘P.
 8. Type `eoscode`
