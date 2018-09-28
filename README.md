@@ -13,11 +13,12 @@ All right reserved by @CityOfStars and @unlimited-network.
 
 * node.js 10.0 &uarr;
 * vscode 1.27 &uarr;
-* Only tested in macOS(High Sierra)
+* macOS(High Sierra)
+* ubuntu(18.04)
 
 ## Extension Settings
 
-1. install `nodejs` and `npm` with `brew`.
+1. install `nodejs` and `npm`.
 2. install vscode. 
 3. clone EOSCode and build with vscode.
 4. copy eoscode folder into below path.
