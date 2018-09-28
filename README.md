@@ -43,6 +43,7 @@ And then you can use `EOSCode : IntegratedBuild : Build Contract (create .wasm a
 
 ## Commands
 
+* BuildTarget : Create .wasm With Current File
 * BuildTarget : Create .abi With Current File
 * Contract : Input Contract Account
 * Contract : Input Contract Option
