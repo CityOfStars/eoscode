@@ -39,3 +39,10 @@ All right reserved by @CityOfStars and @unlimited-network.
 And then you can use `EOSCode : IntegratedBuild : Build Contract (create .wast and .abi)` command.
 
 * on working...
+
+## Working Features ...
+
+* supporting ubuntu on windows
+* porting to eosio.cdt
+
+
