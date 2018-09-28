@@ -17,10 +17,10 @@ All right reserved by @CityOfStars and @unlimited-network.
 
 ## Extension Settings
 
-1. install node.js with `brew`.
+1. install `nodejs` and `npm` with `brew`.
 2. install vscode. 
 3. clone EOSCode and build with vscode.
-4. copy eoscode folder into below.
+4. copy eoscode folder into below path.
   * macOS : ~/.vscode/extensions
   * Linux : ~/.vscode/extensions
 
@@ -39,6 +39,17 @@ All right reserved by @CityOfStars and @unlimited-network.
 And then you can use `EOSCode : IntegratedBuild : Build Contract (create .wast and .abi)` command.
 
 * on working...
+
+## Commands
+
+* BuildTarget : Create .abi With Current File
+* Contract : Input Contract Account
+* Contract : Input Contract Option
+* Contract : Set Contract To Account
+* Contract : Show Contract Interface
+* IntegratedBuild : Build Contract (create .wasm and .abi)
+* IntegratedBuild : Build And Set Contract (contract account is required.)
+* Wallet : Unlock Wallet
 
 ## Working Features ...
 
