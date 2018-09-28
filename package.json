@@ -12,7 +12,7 @@
     ],
     "activationEvents": [
         "onCommand:extension.test",
-        "onCommand:extension.createWAST",
+        "onCommand:extension.createWASM",
         "onCommand:extension.createABI",
         "onCommand:extension.inputContractAccount",
         "onCommand:extension.buildContract",
@@ -29,8 +29,8 @@
                 "title": "EOSCode : Test"
             },
             {
-                "command": "extension.createWAST",
-                "title": "EOSCode : BuildTarget : Create .wast With Current File"
+                "command": "extension.createWASM",
+                "title": "EOSCode : BuildTarget : Create .wasm With Current File"
             },
             {
                 "command": "extension.createABI",
@@ -54,7 +54,7 @@
             },
             {
                 "command": "extension.buildContract",
-                "title": "EOSCode : IntegratedBuild : Build Contract (create .wast and .abi)"
+                "title": "EOSCode : IntegratedBuild : Build Contract (create .wasm and .abi)"
             },
             {
                 "command": "extension.buildAndSetContract",

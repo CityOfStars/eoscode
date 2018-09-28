@@ -13,7 +13,7 @@ function sleep(ms: number) {
 }
 
 export class EOSCode {
-    private wastTargets : string[] = ['.cpp'];
+    private wasmTargets : string[] = ['.cpp'];
     private abiTargets : string[] = ['.hpp', '.h', '.cpp'];
 
     public context: vscode.ExtensionContext;
@@ -36,9 +36,9 @@ export class EOSCode {
             this.runTestCode();
         });
 
-        this.registerEOSCodeCommand('extension.createWAST', () => {
+        this.registerEOSCodeCommand('extension.createWASM', () => {
             const filePath = this.getCurrentFilePath();
-            this.createWAST(filePath);
+            this.createWASM(filePath);
         });
 
         this.registerEOSCodeCommand('extension.createABI', () => {
@@ -108,25 +108,26 @@ export class EOSCode {
     }
 
     // > eosiocpp -o targetName fileName
-    private createWAST(filePath: string) {
+    private createWASM(filePath: string) {
         this.terminal.show();
 
-        if (!filePath.length)
+        if (!filePath.length) {
             return;
+        }
 
         const onlyName = util.getOnlyFileName(filePath);
         const ext = path.extname(filePath);
-        if (!this.wastTargets.find((e) => { return e == ext; })) {
-            vscode.window.showErrorMessage(`Error(wast) : Invalid file extension : "${ext}". expected : ` + this.wastTargets);
+        if (!this.wasmTargets.find((e) => { return e === ext; })) {
+            vscode.window.showErrorMessage(`Error(wasm) : Invalid file extension : "${ext}". expected : ` + this.wasmTargets);
             return;
         }
 
         let configs = this.configMgr.getConfigs();
-        configs.buildTarget.wastSource = filePath;
+        configs.buildTarget.wasmSource = filePath;
 
         const targetDir = this.configMgr.getValidTargetDir(filePath);
 
-        const targetName = `${targetDir}/${onlyName}.wast`;
+        const targetName = `${targetDir}/${onlyName}.wasm`;
         const eosiocppPath = configs.eosPath.eosiocppPath;
         this.terminal.sendText(eosiocppPath + ` -o ${targetName} ${filePath}`);
         vscode.window.showInformationMessage(eosiocppPath + ` -o ${targetName} ${filePath}`);
@@ -139,12 +140,13 @@ export class EOSCode {
     private createABI(filePath: string) {
         this.terminal.show();
 
-        if (!filePath.length)
+        if (!filePath.length) {
             return;
+        }
 
         const onlyName = util.getOnlyFileName(filePath);
         const ext = path.extname(filePath);
-        if (!this.abiTargets.find((e) => { return e == ext; })) {
+        if (!this.abiTargets.find((e) => { return e === ext; })) {
             vscode.window.showErrorMessage(`Invalid file extension : "${ext}". expected : ` + this.abiTargets);
             return;
         }
@@ -152,7 +154,7 @@ export class EOSCode {
         let configs = this.configMgr.getConfigs();
         configs.buildTarget.abiSource = filePath;
 
-        const targetDir = this.configMgr.getValidTargetDir(filePath);;
+        const targetDir = this.configMgr.getValidTargetDir(filePath);
 
         const targetName = `${targetDir}/${onlyName}.abi`;
         const eosiocppPath = configs.eosPath.eosiocppPath;
@@ -168,25 +170,24 @@ export class EOSCode {
         const dir = configs.buildTarget.targetDir;
         const permission = configs.contract.permission;
 
-        if (account.length == 0) {
+        if (account.length === 0) {
             this.inputContractAccount(accountFromUser => {
                 this.setContract();
             });
             return;
         }
 
-        if (dir.length == 0) {
+        if (dir.length === 0) {
             vscode.window.showErrorMessage('Error(buildTarget.targetDir) : Please check your contract target dir.');
             return;
         }
 
         this.terminal.show();
 
-        let wast = this.configMgr.getWastPath();
+        let wasm = this.configMgr.getWasmPath();
         let abi = this.configMgr.getABIPath();
         
-        wast = path.basename(wast);
-        let wasm = util.getOnlyFileName(wast) + ".wasm";
+        wasm = path.basename(wasm);
         abi = path.basename(abi);
 
         const cmd = this.configMgr.getCleosPathWithOption() + ` set contract ${option} ${account} ${dir} ${wasm} ${abi} ${permission}`;
@@ -195,23 +196,23 @@ export class EOSCode {
     }
 
     private buildContract() {
-        const wastSource = this.configMgr.getWastSourcePath();
+        const wasmSource = this.configMgr.getWasmSourcePath();
         const abiSource = this.configMgr.getAbiSourcePath();
-        if (wastSource.length == 0 ||
-            !fs.existsSync(wastSource)) {
+        if (wasmSource.length === 0 ||
+            !fs.existsSync(wasmSource)) {
             //TODO@CityOfStars - input new source
-            vscode.window.showErrorMessage(`Error(wastSource) : Please configure .wast Build Target`);
+            vscode.window.showErrorMessage(`Error(wasmSource) : Please configure .wasm Build Target`);
             return;
         }
 
-        if (abiSource.length == 0 ||
+        if (abiSource.length === 0 ||
             !fs.existsSync(abiSource)) {
             //TODO@CityOfStars - input new source
             vscode.window.showErrorMessage(`Error(abiSource) : Please configure .abi Build Target`);
             return;
         }
 
-        this.createWAST(wastSource);
+        this.createWASM(wasmSource);
         this.createABI(abiSource);
     }
 
@@ -258,8 +259,8 @@ export class EOSCode {
     private inputContractAccount(callback: (...args: any[]) => any) {
         this.input('Your contract account.', account => {
             if (!account ||
-                account.length == 0) {
-                const errorMsg = 'Error(contract.account) : Please check your contract account.'
+                account.length === 0) {
+                const errorMsg = 'Error(contract.account) : Please check your contract account.';
                 vscode.window.showErrorMessage(errorMsg);
                 throw Error(errorMsg);
             }
@@ -275,8 +276,8 @@ export class EOSCode {
     private inputContractOption(callback: (...args: any[]) => any) {
         this.input('Your option of contract. (set contract [option] account ...)', option => {
             if (!option ||
-                option.length == 0) {
-                const errorMsg = 'Error(contract.option) : Please check your contract option.'
+                option.length === 0) {
+                const errorMsg = 'Error(contract.option) : Please check your contract option.';
                 vscode.window.showErrorMessage(errorMsg);
                 throw Error(errorMsg);
             }

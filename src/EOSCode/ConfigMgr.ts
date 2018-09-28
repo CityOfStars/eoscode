@@ -16,7 +16,7 @@ export class ConfigMgr {
             cleosOption: "-u http://127.0.0.1:8888 --wallet-url http://127.0.0.1:8900" // local net
         },
         buildTarget: {
-            wastSource: "",
+            wasmSource: "",
             abiSource: "",
             targetDir: ""
         },
@@ -41,8 +41,9 @@ export class ConfigMgr {
             this.saveConfig(this.configs);
         }
 
-        if (!fs.existsSync(configPath))
+        if (!fs.existsSync(configPath)) {
             return false;
+        }
 
         console.log('config file is existed.');
 
@@ -79,8 +80,8 @@ export class ConfigMgr {
         return `${cleosPath} ${cleosOption}`;
     }
 
-    public getWastSourcePath(): string {
-        return this.configs.buildTarget.wastSource;
+    public getWasmSourcePath(): string {
+        return this.configs.buildTarget.wasmSource;
     }
 
     public getAbiSourcePath(): string {
@@ -90,7 +91,7 @@ export class ConfigMgr {
     public getValidTargetDir(filePath: string): string {
         let targetDir = this.configs.buildTarget.targetDir;
 
-        if (targetDir.length == 0) {   // update to current dir.
+        if (targetDir.length === 0) {   // update to current dir.
             targetDir = path.join(path.dirname(filePath), "output");
             this.configs.buildTarget.targetDir = targetDir;
         }
@@ -107,9 +108,9 @@ export class ConfigMgr {
         return path.join(dir, util.getOnlyFileName(this.configs.buildTarget.abiSource) + ".abi");
     }
 
-    public getWastPath(): string {
+    public getWasmPath(): string {
         const dir = this.configs.buildTarget.targetDir;
-        return path.join(dir, util.getOnlyFileName(this.configs.buildTarget.wastSource) + ".wast");
+        return path.join(dir, util.getOnlyFileName(this.configs.buildTarget.wasmSource) + ".wasm");
     }
 
     // private methods
@@ -119,7 +120,7 @@ export class ConfigMgr {
             return '';
         }
 
-        const configName = 'eoscode.config.json'
+        const configName = 'eoscode.config.json';
         const configPath = path.join(rootDir, configName);
         // console.log(configPath);
 
