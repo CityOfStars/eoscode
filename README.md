@@ -28,7 +28,7 @@ All right reserved by @CityOfStars and @unlimited-network.
 ## Usage
 
 1. Open eos contract project.
-2. Open .wast build target(.cpp) file.
+2. Open .wasm build target(.cpp) file.
 3. Input ⇧⌘P.
 4. Type `eoscode`
 5. Select `EOSCode : BuildTarget : Create .wasm With Current File`
@@ -37,7 +37,7 @@ All right reserved by @CityOfStars and @unlimited-network.
 8. Type `eoscode`
 9. Select `EOSCode : BuildTarget : Create .abi With Current File`
 
-And then you can use `EOSCode : IntegratedBuild : Build Contract (create .wast and .abi)` command.
+And then you can use `EOSCode : IntegratedBuild : Build Contract (create .wasm and .abi)` command.
 
 * on working...
 
