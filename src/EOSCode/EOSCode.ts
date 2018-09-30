@@ -6,7 +6,8 @@ import * as path from 'path';
 import { ConfigMgr } from './ConfigMgr';
 import { ABIInterfaceMgr } from './ABIInterfaceMgr';
 
-var util = require("./Util");
+var util = require('./Util');
+var strip = require('strip-color');
 
 function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -19,6 +20,9 @@ export class EOSCode {
     public context: vscode.ExtensionContext;
     public terminal: vscode.Terminal;
 
+    private isTerminalReady = false;
+    private onWriteDataEvt: any;
+
     // components
     public configMgr = new ConfigMgr();
     public abiInterfaceMgr = new ABIInterfaceMgr();
@@ -26,6 +30,26 @@ export class EOSCode {
     constructor(context: vscode.ExtensionContext, terminal: vscode.Terminal) {
         this.context = context;
         this.terminal = terminal;
+
+        if(process.platform === "win32") {
+            (<any>vscode.window).onDidOpenTerminal((e: any) => {
+                const wsl = "ubuntu run";                
+                this.onWriteDataEvt = e.onDidWriteData((data: string) => {
+                    data = strip(data);
+                    if(data.indexOf(wsl) === -1){
+                        return;
+                    }
+    
+                    this.isTerminalReady = true;
+                    this.onWriteDataEvt.dispose();
+                }, this);
+    
+                this.terminal.sendText(wsl);
+            }, this);
+        } else {
+            // always ready in other platform
+            this.isTerminalReady = true;
+        }
     }
 
     public init() {
@@ -78,13 +102,22 @@ export class EOSCode {
         // if you add a new command, please add to 'package.json' too.
     }
 
-    // todo@cityofstars - make private on finish refactoring
-    public registerEOSCodeCommand(
+    private registerEOSCodeCommand(
         command: string,
         callback: (...args: any[]) => any) {
         let disposable = vscode.commands.registerCommand(command, () => {
             this.onPreCommand();
-            callback.call(this);
+            this.terminal.show();
+
+            let func = (owner: any) => {
+                if (!this.isTerminalReady) {
+                    setTimeout(func, 1000, owner);
+                    return;
+                }
+    
+                callback.call(owner);
+            };
+            func(this);
         });
         this.context.subscriptions.push(disposable);
     }
@@ -109,8 +142,6 @@ export class EOSCode {
 
     // > eosiocpp -o targetName fileName
     private createWASM(filePath: string) {
-        this.terminal.show();
-
         if (!filePath.length) {
             return;
         }
@@ -121,13 +152,17 @@ export class EOSCode {
             vscode.window.showErrorMessage(`Error(wasm) : Invalid file extension : "${ext}". expected : ` + this.wasmTargets);
             return;
         }
-
+        
         let configs = this.configMgr.getConfigs();
         configs.buildTarget.wasmSource = filePath;
+        
+        let targetDir = this.configMgr.getValidTargetDir(filePath, this.terminal);
+        let targetName = path.join(`${targetDir}`, `${onlyName}.wasm`);
 
-        const targetDir = this.configMgr.getValidTargetDir(filePath);
+        filePath = util.getPathByPlatform(filePath);
+        targetDir = util.getPathByPlatform(targetDir);
+        targetName = util.getPathByPlatform(targetName);
 
-        const targetName = `${targetDir}/${onlyName}.wasm`;
         const eosiocppPath = configs.eosPath.eosiocppPath;
         this.terminal.sendText(eosiocppPath + ` -o ${targetName} ${filePath}`);
         vscode.window.showInformationMessage(eosiocppPath + ` -o ${targetName} ${filePath}`);
@@ -135,11 +170,8 @@ export class EOSCode {
         this.configMgr.saveConfig(configs);
     }
 
-
     // > eosiocpp -g targetName fileName
     private createABI(filePath: string) {
-        this.terminal.show();
-
         if (!filePath.length) {
             return;
         }
@@ -153,10 +185,14 @@ export class EOSCode {
 
         let configs = this.configMgr.getConfigs();
         configs.buildTarget.abiSource = filePath;
+        
+        let targetDir = this.configMgr.getValidTargetDir(filePath, this.terminal);
+        let targetName = path.join(`${targetDir}`, `${onlyName}.abi`);
+        
+        filePath = util.getPathByPlatform(filePath);
+        targetDir = util.getPathByPlatform(targetDir);
+        targetName = util.getPathByPlatform(targetName);
 
-        const targetDir = this.configMgr.getValidTargetDir(filePath);
-
-        const targetName = `${targetDir}/${onlyName}.abi`;
         const eosiocppPath = configs.eosPath.eosiocppPath;
         this.terminal.sendText(eosiocppPath + ` -g ${targetName} ${filePath}`);
         vscode.window.showInformationMessage(eosiocppPath + ` -g ${targetName} ${filePath}`);
@@ -167,7 +203,7 @@ export class EOSCode {
         const configs = this.configMgr.getConfigs();
         let account = configs.contract.account;
         const option = configs.contract.option;
-        const dir = configs.buildTarget.targetDir;
+        const dir = util.getPathByPlatform(configs.buildTarget.targetDir);
         const permission = configs.contract.permission;
 
         if (account.length === 0) {
@@ -181,8 +217,6 @@ export class EOSCode {
             vscode.window.showErrorMessage('Error(buildTarget.targetDir) : Please check your contract target dir.');
             return;
         }
-
-        this.terminal.show();
 
         let wasm = this.configMgr.getWasmPath();
         let abi = this.configMgr.getABIPath();
@@ -291,14 +325,12 @@ export class EOSCode {
     }
 
     private async unlockWallet() {
-        this.terminal.show();
         let cmd = this.configMgr.getCleosPathWithOption() + " wallet unlock";
         this.terminal.sendText(cmd);
 
         await sleep(1000);
 
         this.inputFixed('Your wallet passward.', pw => {
-            this.terminal.show();
             this.terminal.sendText(pw);
         });
     }
@@ -334,7 +366,6 @@ export class EOSCode {
                         //console.log(params);
 
                         let cmd = `${this.configMgr.getCleosPathWithOption()} push action ${configs.contract.account} ${functionName} ${params} -p ${userAccount}`;
-                        this.terminal.show();
                         this.terminal.sendText(cmd);
 
                         return;
@@ -347,7 +378,6 @@ export class EOSCode {
                         const tableName = message.text.slice(0, tableSepIndex);
                         const scope = message.text.slice(tableSepIndex + 1);
                         let cmd = `${this.configMgr.getCleosPathWithOption()} get table ${configs.contract.account} ${scope} ${tableName}`;
-                        this.terminal.show();
                         this.terminal.sendText(cmd);
                         return;
                     }

@@ -35,7 +35,7 @@ export class ABIInterfaceMgr {
 <body>
     <script>
         const vscode = acquireVsCodeApi();
-        `
+        `;
         for (let i = 0; i < functionNames.length; i++) {
             let functionName = functionNames[i];
             contents += `function on${functionName}()
@@ -72,7 +72,7 @@ export class ABIInterfaceMgr {
 
             return false;
         }
-        `
+        `;
         }
 
         for (let i = 0; i < tableNames.length; i++) {
@@ -107,15 +107,16 @@ export class ABIInterfaceMgr {
         user account : <input type="text" name="account" value="${contractUser}" />
     </form><br/><br/>
     <h1>Functions</h1><hr/>
-    `
+    `;
         let structs = abiContents.structs;
         for (let i = 0; i < structs.length; i++) {
             let obj = structs[i];
             //console.log(obj['name']);   // structs names
             let functionName = obj['name'];
             //console.log("rammerchoi : " + functionNames.indexOf('rammerchoi'))
-            if (functionNames.indexOf(functionName) == -1)
+            if (functionNames.indexOf(functionName) === -1) {
                 continue;
+            }
 
             // obj == function
             console.log(functionName);
@@ -155,7 +156,7 @@ export class ABIInterfaceMgr {
             scope : <input type="text" name="scope" />
             <input type="submit" value="Get Table" />
         </form><br/><br/>
-`
+`;
         }
 
         contents += tableContents;

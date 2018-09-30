@@ -88,7 +88,7 @@ export class ConfigMgr {
         return this.configs.buildTarget.abiSource;
     }
 
-    public getValidTargetDir(filePath: string): string {
+    public getValidTargetDir(filePath: string, terminal: vscode.Terminal): string {
         let targetDir = this.configs.buildTarget.targetDir;
 
         if (targetDir.length === 0) {   // update to current dir.
@@ -97,7 +97,9 @@ export class ConfigMgr {
         }
 
         if (!fs.existsSync(targetDir)) {
-            fs.mkdirSync(targetDir);
+            // fs.mkdirSync(targetDir); 
+            let targetDirLinux = util.getPathByPlatform(targetDir);
+            terminal.sendText(`mkdir ${targetDirLinux}`);    // for WSL cross-platform
         }
 
         return targetDir;
