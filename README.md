@@ -16,11 +16,14 @@ All right reserved by @CityOfStars and @unlimited-network.
 * vscode 1.27 &uarr;
 * macOS(High Sierra)
 * ubuntu(18.04)
-* windows 10 and WSL(Windows Subsystem for Linux) \*UBUNTU ONLY\*
+* windows 10 and WSL(Windows Subsystem for Linux) \* UBUNTU ONLY \*
 
 ## Extension Settings
 
 1. install `nodejs`, `npm` and `eos` 1.3.0.
+```
+NOTE : If you use windows 10 and WSL, you must install 'eos' in ubuntu.
+```
 2. install vscode. 
 3. clone EOSCode repository.
 
