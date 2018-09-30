@@ -20,26 +20,58 @@ All right reserved by @CityOfStars and @unlimited-network.
 
 1. install `nodejs` and `npm`.
 2. install vscode. 
-3. clone EOSCode and build with vscode.
-4. copy eoscode folder into below path.
-  * macOS : ~/.vscode/extensions
-  * Linux : ~/.vscode/extensions
+3. clone EOSCode repository.
+
+```
+git clone https://github.com/CityOfStars/eoscode.git
+```
+
+4. install devDependencies.
+
+```
+cd eoscode
+npm install
+```
+
+5. build eoscode(hotkey : `F5`).
+
+6. copy eoscode (without `node_modules`) folder into below path.
+  * windows : %USERPROFILE%\.vscode\extensions
+  * macOS & Linux : $HOME/.vscode/extensions
 
 ## Usage
 
+### Set Build Target
 1. Open eos contract project.
 2. Open .wasm build target(.cpp) file.
-3. Input ⇧⌘P.
-4. Type `eoscode`
-5. Select `EOSCode : BuildTarget : Create .wasm With Current File`
-6. Open .abi build target(.hpp) file.
-7. Input ⇧⌘P.
-8. Type `eoscode`
-9. Select `EOSCode : BuildTarget : Create .abi With Current File`
+3. Input ⇧⌘P and type `eoscode`(or `.wasm`).
+4. Select `EOSCode : BuildTarget : Create .wasm With Current File`
+5. Open .abi build target(.hpp) file.
+6. Input ⇧⌘P and type `eoscode`(or `.abi`).
+7. Select `EOSCode : BuildTarget : Create .abi With Current File`
 
 And then you can use `EOSCode : IntegratedBuild : Build Contract (create .wasm and .abi)` command.
 
-* on working...
+### Unlock Wallet
+1. Open `YOUR_WORKSPACE/eoscode.config.json`.
+2. Check that `eosPath.cleosPath` and `eosPath.cleosOption` are correct.
+3. Input ⇧⌘P and type `eoscode`(or `wallet`).
+4. Select `EOSCode : Wallet : Unlock Wallet`.
+5. Input your wallet password.
+
+### Set Contract to Account
+1. Do `Set Build Target` and `Unlock Wallet`.
+2. Input ⇧⌘P and type `eoscode`(or `contract`).
+3. Select `EOSCode : Contract : Set Contract To Account`
+4. Type your contract account. (If you input account already, this step will be skipped.)
+
+And then you can use `IntegratedBuild : Build And Set Contract` command.
+
+### Show Contract Interface as Webview.
+1. Do `Set Build Target` and `Set Contract to Account`.
+2. Input ⇧⌘P and type `eoscode`(or `contract`).
+3. Select `EOSCode : Contract : Show Contract Interface`.
+4. You can use ABI in webview, that means you don't have to type `push action` commands on terminal.
 
 ## Commands
 
