@@ -92,7 +92,6 @@ And then you can use `IntegratedBuild : Build And Set Contract` command.
 
 ## Working Features ...
 
-* supporting ubuntu on windows
 * porting to eosio.cdt
 
 
