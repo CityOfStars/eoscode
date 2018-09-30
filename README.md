@@ -1,7 +1,7 @@
 # EOSCode README
 
 EOSCode is VSCode Extension to help your `eos` development.
-All right reserved by @CityOfStars and @unlimited-network.
+All right reserved by @CityOfStars and @devTooth
 
 ## Features
 
