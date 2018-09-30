@@ -11,6 +11,7 @@ All right reserved by @CityOfStars and @unlimited-network.
 
 ## Requirements
 
+* eos 1.3.0
 * node.js 10.0 &uarr;
 * vscode 1.27 &uarr;
 * macOS(High Sierra)
@@ -18,7 +19,7 @@ All right reserved by @CityOfStars and @unlimited-network.
 
 ## Extension Settings
 
-1. install `nodejs` and `npm`.
+1. install `nodejs`, `npm` and `eos` 1.3.0.
 2. install vscode. 
 3. clone EOSCode repository.
 
