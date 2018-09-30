@@ -16,6 +16,7 @@ All right reserved by @CityOfStars and @unlimited-network.
 * vscode 1.27 &uarr;
 * macOS(High Sierra)
 * ubuntu(18.04)
+* windows 10 and WSL(Windows Subsystem for Linux) \*UBUNTU ONLY\*
 
 ## Extension Settings
 
